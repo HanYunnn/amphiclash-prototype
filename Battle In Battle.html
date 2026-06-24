@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AMPHICLASH — Battle In Battle (Radial)</title>
+  <link rel="stylesheet" href="_styles.css?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+  <style>
+    body { align-items: stretch; background: #ffffff; }
+    .app-shell {
+      height: 100dvh; max-height: 100dvh;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    .live-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--neon); box-shadow: 0 0 6px var(--neon);
+      animation: pulse 1.1s ease-in-out infinite; flex-shrink: 0;
+    }
+
+    /* ── Ring stage ── */
+    .ring-stage {
+      flex: 1; min-height: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 6px 16px 4px; gap: 10px;
+    }
+    .ring-box { position: relative; width: 300px; max-width: 78vw; aspect-ratio: 1; }
+    /* Air OS soft embossed knob plate */
+    .dial-plate {
+      position: absolute; inset: 12%; border-radius: 50%; z-index: 0;
+      background: radial-gradient(circle at 38% 30%, rgba(255,255,255,0.92), rgba(244,248,251,0.55) 52%, rgba(230,237,245,0.35) 100%);
+      box-shadow:
+        10px 12px 28px rgba(20,32,46,0.10),
+        -10px -10px 24px rgba(255,255,255,0.95),
+        inset 2px 3px 10px rgba(255,255,255,0.85),
+        inset -4px -5px 12px rgba(20,32,46,0.05);
+    }
+    .dial-plate::after {
+      content: ''; position: absolute; inset: 13%; border-radius: 50%;
+      box-shadow: inset 5px 6px 16px rgba(20,32,46,0.06), inset -5px -6px 14px rgba(255,255,255,0.9);
+    }
+    .ring-svg { width: 100%; height: 100%; display: block; overflow: visible; position: relative; z-index: 1; }
+
+    /* progress arcs — thin gauge from 12 → 6 o'clock each side; leader's end cap = orange */
+    /* metallic gauge ring + light octagon ticks */
+    .gtick { stroke: rgba(20,32,46,0.14); stroke-width: 1.2; stroke-linecap: round; }
+    .track { fill: none; stroke: rgba(20,32,46,0.07); stroke-width: 1.4; stroke-linecap: round; }
+    .prog  { fill: none; stroke: url(#metalgrad); stroke-width: 1.6; stroke-linecap: round; }
+    .cap   { fill: #8b9aac; }
+    .cap.lead { fill: var(--rk-primus); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--rk-primus) 55%, transparent)); }
+
+    /* central battle arena — energy bloom canvas (two clashing tops) */
+    .arena-canvas {
+      position: absolute; top: 50%; left: 50%;
+      width: 160px; height: 160px; margin: -80px 0 0 -80px;
+      z-index: 1; pointer-events: none; border-radius: 50%;
+      -webkit-mask: radial-gradient(circle, #000 62%, transparent 80%);
+              mask: radial-gradient(circle, #000 62%, transparent 80%);
+    }
+    /* (decorative ring + score ticks defined above) */
+
+    /* center read-out */
+    .ring-center {
+      position: absolute; inset: 0; z-index: 2;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      pointer-events: none; gap: 2px;
+    }
+    .ring-scores {
+      display: flex; align-items: baseline; gap: 10px;
+      font-family: var(--f-display); font-weight: 900; line-height: .8;
+    }
+    .rs-num { font-family: 'DotGothic16', var(--f-display); font-size: 52px; font-weight: 400; letter-spacing: 0; transition: color .25s; }
+    .rs-num.lead  { color: var(--tx); }
+    .rs-num.trail { color: rgba(20,32,46,0.26); }
+    .rs-colon { font-family: 'DotGothic16', var(--f-display); font-size: 40px; color: rgba(20,32,46,0.26); transform: translateY(-2px); }
+    .ring-goal {
+      font-family: var(--f-mono); font-size: 9px; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--tx-3); margin-top: 8px;
+    }
+
+    /* name tags flanking the ring */
+    .ring-name {
+      position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .ring-name--left  { left: -6px; }
+    .ring-name--right { right: -6px; }
+    .rn-av {
+      width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--f-display); font-weight: 900; font-size: 15px;
+      color: var(--tx); border: 0;
+      background: radial-gradient(circle at 38% 30%, #ffffff, #eaeff4);
+      box-shadow: 3px 4px 9px rgba(20,32,46,0.12), -3px -3px 7px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.85);
+    }
+    .rn-av--kai    { border-color: rgba(20,32,46,0.40);  color: var(--tx); }
+    .rn-av--vortex { border-color: rgba(20,32,46,0.40); color: var(--tx); }
+    .rn-label {
+      font-family: var(--f-mono); font-size: 9px; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase; color: var(--tx-3);
+    }
+
+    /* ── Latest / collapsible log ── */
+    .log-wrap { flex-shrink: 0; padding: 0 16px 6px; position: relative; }
+
+    .latest-row {
+      width: 100%; display: grid;
+      grid-template-columns: 26px auto 1fr auto 16px;
+      align-items: center; gap: 8px;
+      padding: 11px 12px; border-radius: 13px; cursor: pointer;
+      border: 1.5px solid var(--glass-bd); background: var(--glass-bg);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      text-align: left; transition: border-color .15s;
+    }
+    .latest-row:hover { border-color: color-mix(in srgb, var(--tx-3) 40%, transparent); }
+    .lr-num { font-family: var(--f-mono); font-size: 11px; font-weight: 700; color: var(--tx-3); }
+    .lr-desc { font-family: var(--f-mono); font-size: 11px; font-weight: 700; letter-spacing:.04em; color: var(--tx-2); text-transform: uppercase; }
+    .lr-score { font-family: var(--f-display); font-weight: 900; font-size: 16px; color: var(--tx); letter-spacing: -.02em; }
+    .lr-chev { font-size: 13px; color: var(--tx-3); transition: transform .25s; text-align: center; }
+    .log-wrap.open .lr-chev { transform: rotate(180deg); }
+
+    .finish-tag {
+      font-family: var(--f-mono); font-size: 9px; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase;
+      padding: 2px 6px; border-radius: 4px; border: 1px solid; white-space: nowrap;
+    }
+    .finish-tag--burst  { color: hsl(8 95% 50%);   border-color: hsl(8 95% 75%);   background: hsl(8 95% 96%); }
+    .finish-tag--over   { color: hsl(25 95% 45%);  border-color: hsl(25 95% 75%);  background: hsl(25 95% 96%); }
+    .finish-tag--spin   { color: hsl(220 60% 45%); border-color: hsl(220 60% 75%); background: hsl(220 60% 96%); }
+    .finish-tag--xtreme { color: #0c2b0e; border-color: rgba(57,255,20,.5); background: rgba(57,255,20,.08); }
+    .finish-tag--ended  { color: var(--tx-3); border-color: var(--glass-bd); background: var(--glass-bg); }
+
+    /* expanding panel */
+    .full-log {
+      max-height: 0; overflow: hidden;
+      transition: opacity .22s ease, margin .22s ease;
+      opacity: 0;
+    }
+    .log-wrap.open .full-log {
+      max-height: 340px; opacity: 1; margin-top: 7px;
+    }
+    .full-log-inner {
+      max-height: 340px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: 8px 12px; border-radius: 13px;
+      border: 1.5px solid var(--glass-bd); background: var(--glass-bg);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    }
+    .round-row {
+      display: grid; grid-template-columns: 22px 1fr auto 1fr 26px;
+      align-items: center; gap: 4px; padding: 7px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .round-row:last-child { border-bottom: none; }
+    .round-header { padding: 2px 0 5px; opacity: .6; }
+    .round-num { font-family: var(--f-mono); font-size: 9px; color: var(--tx-3); letter-spacing: .08em; text-align: center; }
+    .round-winner { font-family: var(--f-mono); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .round-winner--left  { color: var(--rk-champ); }
+    .round-winner--right { color: var(--rk-primus); text-align: right; }
+    .round-finish { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .round-score { font-family: var(--f-mono); font-size: 9px; font-weight: 700; color: var(--tx-3); text-align: center; white-space: nowrap; }
+    .round-pts { font-family: var(--f-mono); font-size: 9px; font-weight: 700; color: var(--tx-3); text-align: right; }
+    .round-pts--kai    { color: var(--rk-champ); }
+    .round-pts--vortex { color: var(--rk-primus); }
+
+    /* ── Round input ── */
+    .input-wrap { flex-shrink: 0; padding: 0 16px 6px; }
+    .input-glass { padding: 10px 12px 12px; border-radius: 14px; }
+    .input-label {
+      font-family: var(--f-mono); font-size: 9px; font-weight: 700;
+      letter-spacing: .10em; text-transform: uppercase; color: var(--tx-3);
+      margin-bottom: 8px;
+    }
+    .player-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 7px; }
+    .player-btn {
+      padding: 12px 8px; border-radius: 12px; cursor: pointer;
+      font-family: var(--f-display); font-weight: 900; font-size: 17px;
+      border: 1.5px solid var(--glass-bd); background: var(--glass-bg);
+      color: var(--tx-2); transition: all .15s; text-align: center; line-height: 1;
+    }
+    .player-btn.selected {
+      border-color: color-mix(in srgb, var(--rk-champ) 55%, transparent);
+      background: color-mix(in srgb, var(--rk-champ) 08%, transparent);
+      color: var(--rk-champ);
+    }
+    .player-btn.selected--opp {
+      border-color: color-mix(in srgb, var(--rk-primus) 55%, transparent);
+      background: color-mix(in srgb, var(--rk-primus) 08%, transparent);
+      color: var(--rk-primus);
+    }
+    .finish-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px; }
+    .finish-btn {
+      padding: 10px 4px; border-radius: 10px;
+      border: 1.5px solid var(--glass-bd); background: var(--glass-bg);
+      cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px;
+      transition: all .12s; opacity: .45;
+    }
+    .finish-btn.ready { opacity: 1; }
+    .finish-btn.selected-fin { opacity: 1; }
+    .finish-btn__type { font-family: var(--f-mono); font-size: 8px; letter-spacing: .08em; text-transform: uppercase; }
+    .finish-btn__pts { font-family: var(--f-mono); font-size: 13px; font-weight: 700; color: var(--tx); }
+    .finish-btn--burst  { border-color: hsl(8 95% 80%); background: hsl(8 95% 97%); }
+    .finish-btn--burst  .finish-btn__type { color: hsl(8 95% 55%); }
+    .finish-btn--burst.selected-fin  { background: hsl(8 95% 93%); border-color: hsl(8 95% 60%); }
+    .finish-btn--over   { border-color: hsl(25 95% 80%); background: hsl(25 95% 97%); }
+    .finish-btn--over   .finish-btn__type { color: hsl(25 95% 45%); }
+    .finish-btn--over.selected-fin  { background: hsl(25 95% 92%); border-color: hsl(25 95% 60%); }
+    .finish-btn--spin   { border-color: hsl(220 60% 78%); background: hsl(220 60% 97%); }
+    .finish-btn--spin   .finish-btn__type { color: hsl(220 60% 48%); }
+    .finish-btn--spin.selected-fin  { background: hsl(220 60% 93%); border-color: hsl(220 60% 60%); }
+    .finish-btn--xtreme { border-color: rgba(57,255,20,.35); background: rgba(57,255,20,.05); }
+    .finish-btn--xtreme .finish-btn__type { color: #1a7a0a; }
+    .finish-btn--xtreme .finish-btn__pts  { color: #0c2b0e; }
+    .finish-btn--xtreme.selected-fin { background: rgba(57,255,20,.12); border-color: rgba(57,255,20,.6); }
+    .end-btn {
+      font-family: var(--f-mono); font-size: 10px; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--tx-3);
+      background: none; border: none; cursor: pointer;
+      padding: 8px 0 2px; width: 100%; text-align: center;
+    }
+
+    /* ── Victory overlay ── */
+    .victory-overlay {
+      position: fixed; inset: 0; z-index: 50;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 32px 24px; gap: 8px;
+      background: rgba(255,255,255,0.92);
+      -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+      opacity: 0; pointer-events: none; transition: opacity .4s ease;
+    }
+    .victory-overlay.show { opacity: 1; pointer-events: auto; }
+    .victory-label { font-family: var(--f-mono); font-size: 9px; font-weight: 700; letter-spacing: .20em; text-transform: uppercase; color: var(--tx-3); }
+    .victory-name  { font-family: var(--f-display); font-weight: 900; font-size: 58px; letter-spacing: -0.04em; line-height: .88; color: var(--tx); }
+    .victory-score { font-family: var(--f-display); font-weight: 900; font-size: 20px; letter-spacing: -0.02em; color: var(--tx-3); margin-top: 6px; }
+    .victory-finish { font-family: var(--f-mono); font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--tx-3); }
+    .victory-elo { font-family: var(--f-mono); font-size: 11px; font-weight: 700; letter-spacing: .06em; color: #1a7a0a; margin-top: 4px; }
+
+    /* ════════════════ SKIN: AQUA — crystal glass system ════════════════ */
+    .skin-aqua {
+      --glass-bg: rgba(251,251,251,0.06);
+      --glass-bd: rgba(251,251,251,0.55);
+      --glass-hi: rgba(251,251,251,0.75);
+      --tx:   #14202e;
+      --tx-2: rgba(20,32,46,0.62);
+      --tx-3: rgba(20,32,46,0.42);
+      --line: rgba(20,32,46,0.12);
+      --metal: linear-gradient(135deg,
+        rgba(255,255,255,0.99) 0%, rgba(150,164,178,0.55) 18%,
+        rgba(255,255,255,0.93) 38%, rgba(126,142,158,0.50) 56%,
+        rgba(252,255,255,0.97) 74%, rgba(148,164,178,0.56) 100%);
+    }
+    /* flowing white gradient + drifting light + grain */
+    body.aqua-bg {
+      background:
+        radial-gradient(135% 110% at 82% 72%, rgba(255,255,255,0.9) 0%, rgba(232,238,245,0.5) 26%, transparent 52%),
+        radial-gradient(130% 120% at 8% 96%, rgba(150,162,176,0.40) 0%, rgba(150,162,176,0.18) 30%, transparent 62%),
+        linear-gradient(158deg, #ffffff 0%, #f3f5f8 48%, #e8ecf1 100%) !important;
+      background-attachment: fixed !important;
+    }
+    body.aqua-bg::after {
+      content: ''; position: fixed; z-index: 0; pointer-events: none;
+      width: 70vh; height: 70vh; top: 50%; left: 50%;
+      border-radius: 50%; filter: blur(50px);
+      background: radial-gradient(circle, rgba(255,255,255,0.6), rgba(226,234,244,0.25) 48%, transparent 72%);
+      animation: lightDrift 14s ease-in-out infinite;
+    }
+    @keyframes lightDrift {
+      0%,100% { transform: translate(-20%,-70%) scale(1); }
+      50%     { transform: translate(-80%,-30%) scale(1.2); }
+    }
+    body.aqua-bg::before {
+      content: ''; position: fixed; inset: 0; z-index: 1; pointer-events: none;
+      opacity: 0.45;
+      background-image: url("assets/grain.png");
+      background-size: 48px 48px; background-repeat: repeat;
+    }
+    @media (prefers-reduced-motion: reduce) { body.aqua-bg::after { animation: none; } }
+    .app-shell.skin-aqua { position: relative; z-index: 2; }
+
+    /* crystal glass surfaces — metallic edge via ::before mask */
+    .skin-aqua .glass,
+    .skin-aqua .latest-row,
+    .skin-aqua .full-log-inner {
+      position: relative;
+      background: rgba(255,255,255,0.62) !important;
+      border-color: transparent !important;
+      -webkit-backdrop-filter: blur(16px) saturate(150%); backdrop-filter: blur(16px) saturate(150%);
+      box-shadow:
+        7px 9px 22px rgba(20,32,46,0.08),
+        -6px -6px 16px rgba(255,255,255,0.75),
+        inset 0 1px 0 rgba(255,255,255,0.95);
+    }
+    .skin-aqua .glass::before,
+    .skin-aqua .latest-row::before,
+    .skin-aqua .full-log-inner::before { display: none; }
+    .skin-aqua .latest-row > *, .skin-aqua .glass > * { position: relative; z-index: 2; }
+    .skin-aqua .latest-row:hover { border-color: transparent !important; }
+    .skin-aqua .player-btn,
+    .skin-aqua .finish-btn {
+      position: relative;
+      background: rgba(255,255,255,0.55) !important;
+      border-color: transparent !important;
+      box-shadow: 4px 5px 12px rgba(20,32,46,0.07), -4px -4px 10px rgba(255,255,255,0.8), inset 0 1px 0 rgba(255,255,255,0.9);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    }
+    .skin-aqua .player-btn.selected {
+      color: var(--tx) !important;
+      background: rgba(255,255,255,0.92) !important;
+      box-shadow: inset 2px 3px 7px rgba(20,32,46,0.08), inset -2px -2px 6px rgba(255,255,255,0.85) !important;
+    }
+    .skin-aqua .finish-btn.selected-fin {
+      box-shadow: inset 2px 3px 7px rgba(20,32,46,0.08), inset -2px -2px 6px rgba(255,255,255,0.85) !important;
+    }
+    /* metallic edge on pressed state */
+    .skin-aqua .player-btn.selected::before,
+    .skin-aqua .finish-btn.selected-fin::before {
+      content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+      background: var(--metal);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+              mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      pointer-events: none; z-index: 3; display: block !important;
+    }
+    .skin-aqua .app-header { background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; border: 0; }
+
+    /* monochrome the log tags/figures to match the single-orange language */
+    .skin-aqua .finish-tag { color: var(--tx-2) !important; border-color: rgba(20,32,46,0.16) !important; background: rgba(255,255,255,0.55) !important; }
+    .skin-aqua .finish-btn__type { color: var(--tx-2) !important; }
+    .skin-aqua .round-winner--left, .skin-aqua .round-winner--right { color: var(--tx-2) !important; }
+    .skin-aqua .round-pts--kai, .skin-aqua .round-pts--vortex { color: var(--tx-3) !important; }
+
+    /* ── Scorecard bottom sheet ── */
+    .sheet-backdrop { position: absolute; inset: 0; z-index: 39; background: rgba(20,32,46,0.16); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity .3s ease; }
+    .sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+    .log-sheet {
+      position: absolute; left: 0; right: 0; bottom: 0; z-index: 40;
+      max-height: 70vh; display: flex; flex-direction: column;
+      padding: 8px 16px 20px;
+      background: rgba(255,255,255,0.9);
+      -webkit-backdrop-filter: blur(22px) saturate(160%); backdrop-filter: blur(22px) saturate(160%);
+      border-radius: 24px 24px 0 0;
+      box-shadow: 0 -12px 44px rgba(20,32,46,0.16), inset 0 1px 0 rgba(255,255,255,0.95);
+      transform: translateY(102%); transition: transform .36s cubic-bezier(.2,.85,.25,1);
+    }
+    .log-sheet.open { transform: translateY(0); }
+    .sheet-grab { width: 38px; height: 4px; border-radius: 3px; background: rgba(20,32,46,0.16); margin: 4px auto 12px; }
+    .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-family: var(--f-mono); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--tx-2); }
+    .sheet-head button { background: none; border: 0; font-size: 15px; color: var(--tx-3); cursor: pointer; padding: 4px; line-height: 1; }
+    .log-sheet .full-log-inner { max-height: none; overflow-y: auto; -webkit-overflow-scrolling: touch; background: transparent !important; box-shadow: none !important; border: 0 !important; padding: 0 !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+
+    /* ── Help button + rules modal ── */
+    .help-btn {
+      position: absolute; right: 2px; bottom: 10px; z-index: 4; pointer-events: auto;
+      width: 24px; height: 24px; border-radius: 50%; border: 0; cursor: pointer;
+      background: radial-gradient(circle at 38% 32%, #ffffff, #e9eef3);
+      box-shadow: 2px 3px 7px rgba(20,32,46,0.14), -2px -2px 6px rgba(255,255,255,0.9);
+      font-family: var(--f-mono); font-size: 12px; font-weight: 700; color: var(--tx-3);
+      display: flex; align-items: center; justify-content: center; line-height: 1;
+    }
+    .help-btn:hover { color: var(--tx); }
+    .rules-backdrop { position: absolute; inset: 0; z-index: 41; background: rgba(20,32,46,0.18); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+    .rules-backdrop.open { opacity: 1; pointer-events: auto; }
+    .rules-modal {
+      position: absolute; z-index: 42; left: 50%; top: 50%;
+      transform: translate(-50%,-46%) scale(.96);
+      width: min(300px, 84%); padding: 22px 20px 18px; border-radius: 22px;
+      background: rgba(255,255,255,0.95); -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
+      box-shadow: 0 20px 50px rgba(20,32,46,0.22), inset 0 1px 0 rgba(255,255,255,0.95);
+      opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease;
+    }
+    .rules-modal.open { opacity: 1; pointer-events: auto; transform: translate(-50%,-50%) scale(1); }
+    .rules-title { font-family: var(--f-display); font-weight: 900; font-size: 18px; color: var(--tx); }
+    .rules-sub { font-family: var(--f-mono); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--tx-3); margin: 3px 0 14px; }
+    .rules-line { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); font-family: var(--f-mono); font-size: 12px; color: var(--tx-2); letter-spacing: .04em; }
+    .rules-line:last-of-type { border-bottom: 0; }
+    .rules-pt { font-weight: 700; color: var(--rk-primus); }
+    .rules-note { font-size: 11.5px; color: var(--tx-3); line-height: 1.55; margin-top: 12px; text-wrap: pretty; }
+    .rules-ok { margin-top: 16px; width: 100%; padding: 11px; border: 0; border-radius: 12px; cursor: pointer; background: #14202e; color: #fff; font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+  </style>
+</head>
+<body class="aqua-bg">
+  <div class="app-shell skin-aqua">
+
+    <!-- Header -->
+    <header class="app-header" style="flex-shrink:0;">
+      <span class="logo">IN BATTLE</span>
+      <div class="live-dot" style="position:absolute;right:18px;top:50%;transform:translateY(-50%);"></div>
+    </header>
+
+    <div class="tech-row" style="padding:6px 16px 0;flex-shrink:0;">
+      <span class="jp" style="font-size:10px;letter-spacing:.06em;">バトル進行中</span>
+      <span id="battle-id">[ BATTLE_#A4B2 ]</span>
+    </div>
+
+    <!-- Ring scoreboard -->
+    <div class="ring-stage">
+      <div class="ring-box">
+        <div class="dial-plate"></div>
+        <svg class="ring-svg" viewBox="0 0 200 200" id="ring-svg" aria-hidden="true"></svg>
+        <canvas class="arena-canvas" id="arena-canvas" width="220" height="220" aria-hidden="true"></canvas>
+
+        <div class="ring-name ring-name--left">
+          <div class="rn-label">Kai</div>
+          <div class="rn-av rn-av--kai">K</div>
+        </div>
+        <div class="ring-name ring-name--right">
+          <div class="rn-label">Vortex</div>
+          <div class="rn-av rn-av--vortex">V</div>
+        </div>
+
+        <div class="ring-center">
+          <div class="ring-scores">
+            <span class="rs-num rs-num--kai" id="score-kai">3</span>
+            <span class="rs-colon">:</span>
+            <span class="rs-num rs-num--vortex" id="score-vortex">2</span>
+          </div>
+          <button class="help-btn" onclick="toggleRules()" aria-label="玩法說明">?</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Latest summary (tap to open scorecard sheet) -->
+    <div class="log-wrap" id="log-wrap">
+      <button class="latest-row" onclick="toggleLog()">
+        <span class="lr-num" id="lr-num">03</span>
+        <span class="finish-tag finish-tag--spin" id="lr-tag">SPIN</span>
+        <span class="lr-desc" id="lr-desc">Kai 收下回合</span>
+        <span class="lr-score" id="lr-score">3 : 2</span>
+        <span class="lr-chev">⌄</span>
+      </button>
+    </div>
+
+    <!-- Scorecard bottom sheet -->
+    <div class="sheet-backdrop" id="sheet-backdrop" onclick="toggleLog()"></div>
+    <div class="log-sheet" id="log-sheet">
+      <div class="sheet-grab"></div>
+      <div class="sheet-head">
+        <span>SCORECARD · 全回合</span>
+        <button onclick="toggleLog()" aria-label="close">✕</button>
+      </div>
+      <div class="full-log-inner">
+          <div class="round-row round-header">
+            <span class="round-num">#</span>
+            <span style="font-family:var(--f-mono);font-size:9px;color:var(--tx-2);letter-spacing:.08em;text-transform:uppercase;">KAI</span>
+            <span style="font-family:var(--f-mono);font-size:9px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;text-align:center;">FINISH</span>
+            <span style="font-family:var(--f-mono);font-size:9px;color:var(--tx-2);letter-spacing:.08em;text-transform:uppercase;text-align:right;">VORTEX</span>
+            <span class="round-num">PT</span>
+          </div>
+          <div id="rounds-log">
+            <div class="round-row">
+              <span class="round-num">01</span>
+              <span class="round-winner round-winner--left">WIN</span>
+              <div class="round-finish"><span class="finish-tag finish-tag--burst">BURST</span><span class="round-score">2 : 0</span></div>
+              <span class="round-winner round-winner--right"></span>
+              <span class="round-pts round-pts--kai">+2</span>
+            </div>
+            <div class="round-row">
+              <span class="round-num">02</span>
+              <span class="round-winner round-winner--left"></span>
+              <div class="round-finish"><span class="finish-tag finish-tag--over">OVER</span><span class="round-score">2 : 2</span></div>
+              <span class="round-winner round-winner--right">WIN</span>
+              <span class="round-pts round-pts--vortex">+2</span>
+            </div>
+            <div class="round-row">
+              <span class="round-num">03</span>
+              <span class="round-winner round-winner--left">WIN</span>
+              <div class="round-finish"><span class="finish-tag finish-tag--spin">SPIN</span><span class="round-score">3 : 2</span></div>
+              <span class="round-winner round-winner--right"></span>
+              <span class="round-pts round-pts--kai">+1</span>
+            </div>
+          </div>
+      </div>
+    </div>
+
+    <!-- Round input -->
+    <div class="input-wrap">
+      <div class="glass input-glass">
+        <div class="input-label" id="input-title">ROUND 04 · 選勝方 + 終結方式</div>
+        <div class="player-btns">
+          <button class="player-btn" id="btn-kai" onclick="selectPlayer('kai')">Kai</button>
+          <button class="player-btn" id="btn-vortex" onclick="selectPlayer('vortex')">Vortex</button>
+        </div>
+        <div class="finish-grid">
+          <div class="finish-btn finish-btn--spin"   id="fin-spin"   onclick="selectFinish('spin',1)">
+            <span class="finish-btn__type">SPIN</span><span class="finish-btn__pts">+1</span>
+          </div>
+          <div class="finish-btn finish-btn--over"   id="fin-over"   onclick="selectFinish('over',2)">
+            <span class="finish-btn__type">OVER</span><span class="finish-btn__pts">+2</span>
+          </div>
+          <div class="finish-btn finish-btn--burst"  id="fin-burst"  onclick="selectFinish('burst',2)">
+            <span class="finish-btn__type">BURST</span><span class="finish-btn__pts">+2</span>
+          </div>
+          <div class="finish-btn finish-btn--xtreme" id="fin-xtreme" onclick="selectFinish('xtreme',3)">
+            <span class="finish-btn__type">XTREME</span><span class="finish-btn__pts">+3</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex-shrink:0;padding:0 16px;">
+      <button class="end-btn" onclick="endBattle()">提前結束對戰</button>
+    </div>
+
+    <div class="tech-row" style="padding:2px 16px 8px;flex-shrink:0;">
+      <span class="jp" style="font-size:10px;letter-spacing:.06em;">バトル進行中</span>
+      <span>IN_BATTLE</span>
+    </div>
+  </div>
+
+  <!-- Rules modal -->
+  <div class="rules-backdrop" id="rules-backdrop" onclick="toggleRules()"></div>
+  <div class="rules-modal" id="rules-modal">
+    <div class="rules-title">玩法說明</div>
+    <div class="rules-sub">How to play · 先到 4 分勝</div>
+    <div class="rules-line"><span>SPIN FINISH</span><span class="rules-pt">+1</span></div>
+    <div class="rules-line"><span>OVER FINISH</span><span class="rules-pt">+2</span></div>
+    <div class="rules-line"><span>BURST FINISH</span><span class="rules-pt">+2</span></div>
+    <div class="rules-line"><span>XTREME FINISH</span><span class="rules-pt">+3</span></div>
+    <div class="rules-note">每回合選擇勝方與終結方式記分，最先累積到 4 分者獲勝。點下方最新一列可展開完整 scorecard。</div>
+    <button class="rules-ok" onclick="toggleRules()">了解</button>
+  </div>
+
+  <!-- Victory overlay -->
+  <div class="victory-overlay" id="victory-overlay">
+    <div class="victory-label">WINNER</div>
+    <div class="victory-name" id="vic-name">Kai</div>
+    <div class="victory-score" id="vic-score">4 : 2</div>
+    <div class="victory-finish" id="vic-finish">終結 · BURST FINISH</div>
+    <div class="victory-elo" id="vic-elo">積分 +18</div>
+    <div style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:300px;margin-top:14px;">
+      <a href="Battle Result.html" class="vbtn vbtn--go" style="text-decoration:none;">查看結果</a>
+      <button class="vbtn vbtn--ghost" onclick="document.getElementById('victory-overlay').classList.remove('show')">繼續觀看</button>
+    </div>
+  </div>
+
+  <!-- Logic -->
+  <script>
+    const WIN_TO = 4;
+    const FIN_LABEL = { spin:'SPIN', over:'OVER', burst:'BURST', xtreme:'XTREME', ended:'END' };
+    const state = { kai: 3, vortex: 2, selectedPlayer: null, selectedFinish: null, roundNum: 4 };
+
+    /* ── Build segmented ring ── */
+    const CX = 100, CY = 100, R = 84, GAP = 4, SEG = 45, TPS = 18; // R = metallic gauge ring radius (outside plate)
+    function polar(deg){ const a = deg * Math.PI/180; return [CX + R*Math.cos(a), CY + R*Math.sin(a)]; }
+    function arc(a0, a1){
+      const [x0,y0] = polar(a0), [x1,y1] = polar(a1);
+      const large = Math.abs(a1-a0) > 180 ? 1 : 0;
+      const sweep = a1 > a0 ? 1 : 0;
+      return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${R} ${R} 0 ${large} ${sweep} ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+    }
+    function buildRing(){
+      const svg = document.getElementById('ring-svg');
+      const pol = (deg, r) => { const a = deg*Math.PI/180; return [CX + r*Math.cos(a), CY + r*Math.sin(a)]; };
+      let html = '';
+      // metallic gradient (mirrors design-guide --metal silver edge)
+      html += `<defs><linearGradient id="metalgrad" x1="0" y1="0" x2="1" y2="1">`
+        + `<stop offset="0%" stop-color="#ffffff"/><stop offset="18%" stop-color="#9aa8b6"/>`
+        + `<stop offset="38%" stop-color="#ffffff"/><stop offset="56%" stop-color="#7e8e9e"/>`
+        + `<stop offset="74%" stop-color="#fcffff"/><stop offset="100%" stop-color="#94a4b2"/>`
+        + `</linearGradient></defs>`;
+      // 8 light ticks (octagon: 12 & 6 poles + 3 each side)
+      for (let i = 0; i < 8; i++){
+        const ang = 270 + i*45;
+        const [x1,y1] = pol(ang, 88), [x2,y2] = pol(ang, 93);
+        html += `<line class="gtick" x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}"/>`;
+      }
+      html += `<path class="track" d="${arc(265, 95)}"/>`;   // left track (Kai)
+      html += `<path class="track" d="${arc(275, 445)}"/>`;  // right track (Vortex)
+      html += `<path class="prog" id="prog-kai" d=""/>`;
+      html += `<path class="prog" id="prog-vortex" d=""/>`;
+      svg.innerHTML = html;
+    }
+
+    function fillSegments(side, score, leadSide){
+      const span = 170;
+      const start = side === 'kai' ? 265 : 275;
+      const end = side === 'kai' ? (265 - score / WIN_TO * span) : (275 + score / WIN_TO * span);
+      document.getElementById('prog-' + side).setAttribute('d', score <= 0 ? '' : arc(start, end));
+    }
+
+    function refreshBoard(){
+      document.getElementById('score-kai').textContent    = state.kai;
+      document.getElementById('score-vortex').textContent = state.vortex;
+      const leadSide = state.kai > state.vortex ? 'kai' : state.vortex > state.kai ? 'vortex' : null;
+      fillSegments('kai', state.kai, leadSide);
+      fillSegments('vortex', state.vortex, leadSide);
+      const k = document.getElementById('score-kai'), v = document.getElementById('score-vortex');
+      k.className = 'rs-num rs-num--kai '    + (state.kai    >= state.vortex ? 'lead' : 'trail');
+      v.className = 'rs-num rs-num--vortex ' + (state.vortex >  state.kai    ? 'lead' : 'trail');
+    }
+
+    function updateLatest(roundNum, who, fin){
+      document.getElementById('lr-num').textContent  = String(roundNum).padStart(2,'0');
+      const tag = document.getElementById('lr-tag');
+      tag.textContent = FIN_LABEL[fin.type] || fin.type.toUpperCase();
+      tag.className = 'finish-tag finish-tag--' + fin.type;
+      const name = who === 'kai' ? 'Kai' : 'Vortex';
+      document.getElementById('lr-desc').textContent  = fin.type === 'ended' ? '對戰結束' : `${name} 收下回合 · +${fin.pts}`;
+      document.getElementById('lr-score').textContent = `${state.kai} : ${state.vortex}`;
+    }
+
+    function toggleLog(){
+      const open = document.getElementById('log-sheet').classList.toggle('open');
+      document.getElementById('sheet-backdrop').classList.toggle('open', open);
+      document.querySelector('.lr-chev').style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+    function toggleRules(){
+      const open = document.getElementById('rules-modal').classList.toggle('open');
+      document.getElementById('rules-backdrop').classList.toggle('open', open);
+    }
+
+    /* ── Input ── */
+    function selectPlayer(who){
+      state.selectedPlayer = who;
+      document.getElementById('btn-kai').className    = 'player-btn' + (who === 'kai' ? ' selected' : '');
+      document.getElementById('btn-vortex').className = 'player-btn' + (who === 'vortex' ? ' selected--opp selected' : '');
+      ['spin','over','burst','xtreme'].forEach(f => document.getElementById('fin-'+f).classList.add('ready'));
+      tryCommit();
+    }
+    function selectFinish(type, pts){
+      if (!state.selectedPlayer) return;
+      state.selectedFinish = { type, pts };
+      ['spin','over','burst','xtreme'].forEach(f => {
+        document.getElementById('fin-'+f).classList.toggle('selected-fin', f === type);
+      });
+      tryCommit();
+    }
+    function tryCommit(){ if (state.selectedPlayer && state.selectedFinish) commitRound(); }
+
+    function commitRound(){
+      const { selectedPlayer: who, selectedFinish: fin, roundNum } = state;
+      state[who] = Math.min(state[who] + fin.pts, WIN_TO);
+
+      const log = document.getElementById('rounds-log');
+      const row = document.createElement('div');
+      row.className = 'round-row';
+      row.innerHTML = `
+        <span class="round-num">${String(roundNum).padStart(2,'0')}</span>
+        <span class="round-winner round-winner--left">${who==='kai'?'WIN':''}</span>
+        <div class="round-finish">
+          <span class="finish-tag finish-tag--${fin.type}">${(FIN_LABEL[fin.type]||fin.type.toUpperCase())}</span>
+          <span class="round-score">${state.kai} : ${state.vortex}</span>
+        </div>
+        <span class="round-winner round-winner--right">${who==='vortex'?'WIN':''}</span>
+        <span class="round-pts round-pts--${who}">+${fin.pts}</span>
+      `;
+      log.appendChild(row);
+
+      updateLatest(roundNum, who, fin);
+      state.roundNum++;
+      refreshBoard();
+      resetInput();
+
+      if (state.kai >= WIN_TO || state.vortex >= WIN_TO){
+        setTimeout(() => showVictory(who, fin), 350);
+      }
+    }
+
+    function resetInput(){
+      state.selectedPlayer = null; state.selectedFinish = null;
+      document.getElementById('btn-kai').className    = 'player-btn';
+      document.getElementById('btn-vortex').className = 'player-btn';
+      ['spin','over','burst','xtreme'].forEach(f => {
+        document.getElementById('fin-'+f).classList.remove('ready','selected-fin');
+      });
+      document.getElementById('input-title').textContent = `ROUND ${String(state.roundNum).padStart(2,'0')} · 選勝方 + 終結方式`;
+    }
+
+    function showVictory(who, fin){
+      const name = who === 'kai' ? 'Kai' : 'Vortex';
+      const eloChange = who === 'kai' ? '+18' : '-12';
+      const newElo = who === 'kai' ? '2,604' : '2,562';
+      document.getElementById('vic-name').textContent   = name;
+      document.getElementById('vic-score').textContent  = `${state.kai} : ${state.vortex}`;
+      document.getElementById('vic-finish').textContent = `終結 · ${(FIN_LABEL[fin.type]||fin.type.toUpperCase())} FINISH`;
+      const eloEl = document.getElementById('vic-elo');
+      eloEl.textContent = `積分 ${eloChange}`;
+      eloEl.style.color = who === 'kai' ? '#1a7a0a' : '#c0392b';
+      document.getElementById('victory-overlay').classList.add('show');
+    }
+
+    function endBattle(){
+      const who = state.kai >= state.vortex ? 'kai' : 'vortex';
+      showVictory(who, { type: 'ended', pts: 0 });
+    }
+
+    buildRing();
+    refreshBoard();
+  </script>
+
+  <!-- Central energy-bloom arena (adapted from jackrugile's color-shift canvas) -->
+  <script>
+    (function(){
+      const cv = document.getElementById('arena-canvas'); if(!cv) return;
+      const ctx = cv.getContext('2d'); const W = cv.width, H = cv.height, cx = W/2, cy = H/2;
+      const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const R = W/2;
+      const bodies = [
+        { x: cx-44, y: cy, vx: 0, vy: 0, hue: 28,  sat: 24, base: 44, ph: Math.random()*9 },
+        { x: cx+44, y: cy, vx: 0, vy: 0, hue: 212, sat: 16, base: 44, ph: Math.random()*9 }
+      ];
+      let t = 0;
+      function frame(){
+        t += 0.022;
+        const A = bodies[0], B = bodies[1];
+        let dx = B.x-A.x, dy = B.y-A.y, d = Math.hypot(dx,dy) || 0.001;
+        const ux = dx/d, uy = dy/d;
+        const prox = Math.max(0, Math.min(1, 1 - d/130));   // 0 far → 1 close
+        const spd = 0.6 + prox*2.4;                          // closer = faster, farther = slower
+        const mood = Math.sin(t*0.7);
+        const rest = 78;
+        let f = (d - rest) * 0.0013 * Math.sign(mood) * (0.4 + Math.abs(mood));
+        const minD = 50;
+        if(d < minD) f -= (minD - d) * 0.016;   // hard repel on overlap
+        A.vx += ux*f; A.vy += uy*f;
+        B.vx -= ux*f; B.vy -= uy*f;
+        for(const b of bodies){
+          // irregular wander
+          b.vx += Math.cos(t*1.4 + b.ph)*0.09 + (Math.random()-0.5)*0.07;
+          b.vy += Math.sin(t*1.13 + b.ph*1.7)*0.09 + (Math.random()-0.5)*0.07;
+          // soft boundary pulling back toward centre
+          const bx = b.x-cx, by = b.y-cy, br = Math.hypot(bx,by) || 0.001, lim = R*0.52;
+          if(br > lim){ b.vx -= (bx/br)*(br-lim)*0.012; b.vy -= (by/br)*(br-lim)*0.012; }
+          b.vx *= 0.94; b.vy *= 0.94;
+          b.x += b.vx * spd; b.y += b.vy * spd;
+        }
+        ctx.clearRect(0,0,W,H);
+        ctx.globalCompositeOperation = 'source-over';
+        for(const b of bodies){
+          const pr = b.base + Math.sin(t*3 + b.ph)*5;
+          const g = ctx.createRadialGradient(b.x,b.y,0, b.x,b.y,pr);
+          g.addColorStop(0,   `hsla(${b.hue},${b.sat}%,46%,0.50)`);
+          g.addColorStop(0.6, `hsla(${b.hue},${b.sat}%,54%,0.22)`);
+          g.addColorStop(1,   `hsla(${b.hue},${b.sat}%,62%,0)`);
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(b.x,b.y,pr,0,Math.PI*2); ctx.fill();
+        }
+        if(!reduce) requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AMPHICLASH — Profile</title>
+  <link rel="stylesheet" href="_styles.css?v=2">
+  <style>
+    body { align-items: stretch; background: #ffffff; }
+    /* center the header title */
+    .app-header .logo {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      pointer-events: none;
+    }
+    .app-shell {
+      height: 100dvh; max-height: 100dvh;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    /* ── Pager ── */
+    .pager-shell { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+    .pager-track {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 44px;
+      display: flex; overflow-x: scroll; overflow-y: hidden;
+      scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .pager-track::-webkit-scrollbar { display: none; }
+    .pager-panel {
+      flex-shrink: 0; width: 100%; min-width: 100%; height: 100%;
+      scroll-snap-align: start; display: flex; flex-direction: column;
+      gap: 10px; overflow: hidden; padding: 10px 16px 0;
+    }
+    .pager-footer {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 44px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--tx-3);
+      transition: background .2s, width .2s; cursor: pointer;
+    }
+    .dot.active { background: var(--tx); width: 18px; border-radius: 3px; }
+
+    /* ── Identity card ── */
+    .identity-card {
+      flex-shrink: 0;
+      display: flex; align-items: center; gap: 16px;
+      padding: 18px 20px;
+    }
+    .avatar-ring {
+      width: 68px; height: 68px; border-radius: 50%; flex-shrink: 0;
+      border: 2.5px solid var(--rk-champ);
+      box-shadow: 0 0 0 5px color-mix(in srgb,var(--rk-champ) 10%,transparent),
+                  0 0 20px color-mix(in srgb,var(--rk-champ) 30%,transparent);
+      background: color-mix(in srgb,var(--rk-champ) 07%,var(--glass-bg));
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--f-display); font-weight: 900; font-size: 26px;
+      color: var(--rk-champ);
+    }
+    .identity-info { flex: 1; min-width: 0; }
+    .identity-name {
+      font-family: var(--f-display); font-weight: 900;
+      font-size: 36px; letter-spacing: -0.03em; line-height: 0.88;
+      color: var(--tx);
+    }
+    .identity-rank {
+      display: inline-flex; align-items: center; gap: 5px;
+      margin-top: 7px;
+      font-family: var(--f-mono); font-size: 11px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--rk-champ);
+    }
+    .identity-rank .dot-gem {
+      width: 8px; height: 8px; border-radius: 1.5px;
+      background: var(--rk-champ); transform: rotate(45deg);
+      flex-shrink: 0;
+    }
+    .identity-sub {
+      font-family: var(--f-mono); font-size: 9.5px; color: var(--tx-3);
+      letter-spacing: 0.06em; margin-top: 5px;
+    }
+    .identity-right {
+      display: flex; flex-direction: column; align-items: flex-end;
+      gap: 8px; flex-shrink: 0;
+    }
+    .edit-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: 9px;
+      border: 1px solid var(--line); background: var(--glass-bg);
+      cursor: pointer; color: var(--tx-3);
+    }
+    .edit-btn:hover { background: rgba(20,20,24,0.06); }
+    .exp-block {
+      display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+    }
+    .exp-block__val {
+      font-family: var(--f-mono); font-size: 15px; font-weight: 700;
+      color: var(--tx); letter-spacing: -0.01em; line-height: 1;
+    }
+    .exp-block__label {
+      font-family: var(--f-mono); font-size: 8px; letter-spacing: 0.10em;
+      text-transform: uppercase; color: var(--tx-3);
+    }
+
+    /* ── Charts card ── */
+    .charts-card {
+      padding: 14px;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+    }
+    .charts-title {
+      font-family: var(--f-mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--tx-3); margin-bottom: 12px;
+    }
+    .charts-layout {
+      flex: 1;
+      display: grid; grid-template-columns: 108px 1fr; gap: 16px;
+      align-items: center;
+    }
+    /* donut */
+    .donut-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .donut-label {
+      font-family: var(--f-mono); font-size: 8px; letter-spacing: 0.10em;
+      text-transform: uppercase; color: var(--tx-3); text-align: center;
+    }
+    /* finish bars */
+    .finish-bars { display: flex; flex-direction: column; gap: 10px; }
+    .fbar-row { display: flex; align-items: center; gap: 6px; }
+    .fbar-type {
+      font-family: var(--f-mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      color: var(--tx-3); width: 48px; flex-shrink: 0;
+    }
+    .fbar-track {
+      flex: 1; height: 8px; border-radius: 4px;
+      background: var(--line); overflow: hidden;
+    }
+    .fbar-fill { height: 100%; border-radius: 3px; }
+    .fbar-val {
+      font-family: var(--f-mono); font-size: 10px; font-weight: 700;
+      color: var(--tx-2); width: 22px; text-align: right; flex-shrink: 0;
+    }
+
+    /* ── Quick stats row ── */
+    .quick-stats {
+      flex-shrink: 0;
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+    }
+    .qs-cell {
+      border-radius: 12px; padding: 10px 8px;
+      background: var(--glass-bg); border: 1px solid var(--glass-bd);
+      -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .qs-val {
+      font-family: var(--f-mono); font-weight: 700; font-size: 20px;
+      letter-spacing: -0.02em; color: var(--tx); line-height: 1;
+    }
+    .qs-val--accent { color: var(--rk-champ); }
+    .qs-label {
+      font-family: var(--f-mono); font-size: 7.5px; letter-spacing: 0.09em;
+      text-transform: uppercase; color: var(--tx-3); text-align: center; line-height: 1.3;
+    }
+
+    /* ── Battle history (Panel 1) ── */
+    .battle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 0; border-bottom: 1px solid var(--line); gap: 8px;
+    }
+    .battle-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .result-tag {
+      font-family: var(--f-mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.08em; padding: 3px 7px; border-radius: 5px;
+      border: 1px solid; text-transform: uppercase; flex-shrink: 0;
+    }
+    .result-tag--win  { color: #1a7a0e; border-color: rgba(57,180,20,.35); background: rgba(57,180,20,.10); }
+    .result-tag--loss { color: var(--tx-3); border-color: var(--line); }
+    .battle-opponent { font-size: 13px; font-weight: 500; color: var(--tx-2); flex: 1; }
+    .battle-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
+    .battle-score { font-family: var(--f-mono); font-size: 11px; color: var(--tx-3); font-weight: 700; }
+    .battle-finish { font-family: var(--f-mono); font-size: 8.5px; letter-spacing: .07em; color: var(--tx-3); text-transform: uppercase; }
+
+    /* ── Season history (Panel 2) ── */
+    .season-entry {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 0; border-bottom: 1px solid var(--line);
+    }
+    .season-entry:last-child { border-bottom: none; }
+    .season-badge {
+      font-family: var(--f-mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 0.10em; text-transform: uppercase;
+      color: var(--tx-3); width: 36px; flex-shrink: 0;
+    }
+    .season-rank-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 9px 4px 7px; border-radius: 6px; border: 1px solid;
+      font-family: var(--f-mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .season-rank-chip .gem {
+      width: 8px; height: 8px; border-radius: 1.5px; transform: rotate(45deg); flex-shrink: 0;
+    }
+    .season-stat-mini {
+      flex: 1; display: flex; gap: 10px; justify-content: flex-end;
+      font-family: var(--f-mono); font-size: 9px; color: var(--tx-3); letter-spacing: .06em;
+    }
+
+    /* ── Friends (Panel 3) ── */
+    .ff-section-label {
+      font-family: var(--f-mono); font-size: 9px; font-weight: 700;
+      letter-spacing: .12em; text-transform: uppercase; color: var(--tx-3);
+      display: flex; align-items: center; justify-content: space-between;
+      margin: 2px 0 9px;
+    }
+    .ff-add-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 13px; border-radius: 12px; cursor: pointer;
+      border: 1px solid transparent; background: var(--tx); color: #fff;
+      font-family: var(--f-mono); font-size: 11px; font-weight: 700;
+      letter-spacing: .10em; text-transform: uppercase;
+    }
+    .ff-add-btn:hover { background: #1f2f42; }
+    .req-row, .friend-item {
+      display: flex; align-items: center; gap: 11px;
+      padding: 10px 0; border-bottom: 1px solid var(--line);
+    }
+    .req-row:last-child, .friend-item:last-child { border-bottom: none; }
+    .ff-av {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--f-display); font-weight: 900; font-size: 15px;
+      border: 2px solid; background: #fff;
+    }
+    .ff-info { flex: 1; min-width: 0; }
+    .ff-name {
+      font-family: var(--f-display); font-weight: 900; font-size: 15px;
+      letter-spacing: -.01em; color: var(--tx); line-height: 1;
+    }
+    .ff-chip {
+      display: inline-flex; align-items: center; gap: 4px; margin-top: 5px;
+      font-family: var(--f-mono); font-size: 9px; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase;
+    }
+    .ff-chip .gem { width: 7px; height: 7px; border-radius: 1.5px; transform: rotate(45deg); flex-shrink: 0; }
+    .ff-btn {
+      flex-shrink: 0; cursor: pointer; border-radius: 8px;
+      font-family: var(--f-mono); font-size: 9.5px; font-weight: 700;
+      letter-spacing: .07em; text-transform: uppercase;
+      padding: 7px 11px; border: 1px solid var(--line);
+    }
+    .ff-btn--accept { background: var(--tx); color: #fff; border-color: var(--tx); }
+    .ff-btn--ghost  { background: transparent; color: var(--tx-3); }
+    .ff-icon-btn {
+      flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
+      border: 1px solid var(--line); background: transparent; color: var(--tx-3);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ff-icon-btn:hover { color: hsl(8 70% 50%); border-color: hsl(8 70% 70%); }
+    .ff-method {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px; border-radius: 12px; cursor: pointer;
+      border: 1px solid var(--glass-bd); background: var(--glass-bg); margin-bottom: 9px;
+    }
+    .ff-method:hover { background: rgba(20,20,24,0.05); }
+    .ff-method__ic {
+      width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--tx); color: #fff;
+    }
+    .ff-method__t { font-family: var(--f-display); font-weight: 900; font-size: 14px; color: var(--tx); }
+    .ff-method__s { font-family: var(--f-mono); font-size: 9px; color: var(--tx-3); margin-top: 3px; letter-spacing: .04em; }
+
+    /* — neumorphic emboss on secondary controls — */
+    .skin-aqua .edit-btn {
+      border: none !important; background: rgba(255,255,255,0.55) !important;
+      box-shadow: 3px 4px 9px rgba(20,32,46,0.08), -3px -3px 7px rgba(255,255,255,0.85), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+    }
+    .skin-aqua .qs-cell {
+      border: none !important; background: rgba(255,255,255,0.5) !important;
+      box-shadow: 3px 4px 11px rgba(20,32,46,0.07), -3px -3px 8px rgba(255,255,255,0.8), inset 0 1px 0 rgba(255,255,255,0.92) !important;
+    }
+    .skin-aqua .ff-method {
+      border: none !important; background: rgba(255,255,255,0.55) !important;
+      box-shadow: 3px 4px 11px rgba(20,32,46,0.07), -3px -3px 8px rgba(255,255,255,0.8), inset 0 1px 0 rgba(255,255,255,0.92) !important;
+    }
+    .skin-aqua .ff-method:hover { background: rgba(255,255,255,0.7) !important; }
+    .dot.active { box-shadow: 2px 2px 5px rgba(20,32,46,0.18), -1px -1px 3px rgba(255,255,255,0.6); }
+    #confirm-box::before {
+      content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1.2px;
+      background: var(--metal);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+              mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; z-index: 1;
+    }
+    #confirm-box > * { position: relative; z-index: 2; }
+
+    /* — QR scanner overlay (frosted, on-brand) — */
+    .scanner-overlay { position: fixed; inset: 0; z-index: 110; background: rgba(233,241,252,0.55); -webkit-backdrop-filter: blur(26px) saturate(150%); backdrop-filter: blur(26px) saturate(150%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; opacity: 0; pointer-events: none; transition: opacity .25s; }
+    .scanner-overlay.show { opacity: 1; pointer-events: auto; }
+    .scan-card {
+      position: relative; padding: 26px; border-radius: 26px;
+      background: rgba(255,255,255,0.6);
+      box-shadow: 7px 9px 26px rgba(20,32,46,0.12), -6px -6px 18px rgba(255,255,255,0.8), inset 0 1px 0 rgba(255,255,255,0.95);
+      display: flex; flex-direction: column; align-items: center; gap: 18px;
+    }
+    .scan-card::before {
+      content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1.4px;
+      background: var(--metal);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+              mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+    }
+    .scan-frame {
+      width: 210px; height: 210px; position: relative; border-radius: 18px;
+      background: rgba(20,32,46,0.04);
+      box-shadow: inset 3px 4px 10px rgba(20,32,46,0.10), inset -3px -3px 8px rgba(255,255,255,0.8);
+    }
+    .scan-corner { position: absolute; width: 26px; height: 26px; border: 2.5px solid var(--tx); opacity: .55; }
+    .scan-corner.tl { top: 10px; left: 10px; border-right: none; border-bottom: none; border-radius: 8px 0 0 0; }
+    .scan-corner.tr { top: 10px; right: 10px; border-left: none; border-bottom: none; border-radius: 0 8px 0 0; }
+    .scan-corner.bl { bottom: 10px; left: 10px; border-right: none; border-top: none; border-radius: 0 0 0 8px; }
+    .scan-corner.br { bottom: 10px; right: 10px; border-left: none; border-top: none; border-radius: 0 0 8px 0; }
+    .scan-line { position: absolute; left: 16px; right: 16px; height: 2px; background: linear-gradient(90deg, transparent, var(--rk-champ), transparent); box-shadow: 0 0 8px color-mix(in srgb,var(--rk-champ) 60%,transparent); top: 16px; animation: scanMove 1.9s ease-in-out infinite; }
+    @keyframes scanMove { 0%{top:16px;opacity:.3;} 15%{opacity:1;} 50%{top:calc(100% - 18px);opacity:1;} 85%{opacity:1;} 100%{top:16px;opacity:.3;} }
+    .scan-hint { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em; color: var(--tx-3); text-transform: uppercase; }
+    .scan-found { font-family: var(--f-display); font-weight: 900; font-size: 17px; color: var(--rk-champ); opacity: 0; transition: opacity .3s; height: 0; }
+    .scanner-overlay.found .scan-found { opacity: 1; height: auto; }
+    .scanner-overlay.found .scan-hint { display: none; }
+    .scanner-overlay.found .scan-line { animation: none; opacity: 0; }
+    .scan-cancel { font-family: var(--f-mono); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--tx-2); background: rgba(255,255,255,0.6); border: none; box-shadow: 3px 4px 9px rgba(20,32,46,0.08), -3px -3px 7px rgba(255,255,255,0.85), inset 0 1px 0 rgba(255,255,255,0.9); border-radius: 100px; padding: 12px 28px; cursor: pointer; }
+
+    /* ═══ Gooey metaball background + veil ═══ */
+    body.aqua-bg { background: #e9f1fc !important; }
+    body.aqua-bg::after, body.aqua-bg::before { display: none !important; }
+    .goo-stage { position: fixed; inset: 0; z-index: 0; filter: url(#goo); pointer-events: none; }
+    .goo-defs  { position: absolute; width: 0; height: 0; }
+    .blob      { position: absolute; border-radius: 50%; will-change: transform; }
+    .goo-veil  { position: fixed; inset: 0; z-index: 1; pointer-events: none; background: rgba(255,255,255,0.58); -webkit-backdrop-filter: blur(26px); backdrop-filter: blur(26px); }
+
+    /* tighter neumorphic shadow so it fully shows inside the tight pager (no clipping) */
+    .skin-aqua .glass {
+      box-shadow:
+        3px 4px 13px rgba(20,32,46,0.08),
+        -3px -3px 9px rgba(255,255,255,0.72),
+        inset 0 1px 0 rgba(255,255,255,0.95) !important;
+    }
+  </style>
+</head>
+<body class="aqua-bg skin-aqua">
+  <div class="goo-stage" id="goo-stage"></div>
+  <div class="goo-veil"></div>
+  <svg class="goo-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <filter id="goo">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="22" result="blur"/>
+        <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8" result="goo"/>
+        <feGaussianBlur in="goo" stdDeviation="10"/>
+      </filter>
+    </defs>
+  </svg>
+  <div class="app-shell skin-aqua">
+
+    <!-- Header -->
+    <header class="app-header" style="flex-shrink:0;">
+      <a href="Grid Hub.html" style="display:flex;align-items:center;gap:8px;color:var(--tx-2);text-decoration:none;font-family:var(--f-mono);font-size:11px;letter-spacing:0.06em;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <span class="logo">AMPHICLASH</span>
+      <div class="header-icons">
+        <!-- Friends -->
+        <button class="header-icon" id="friends-btn" title="好友" style="cursor:pointer;position:relative;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="6" cy="5.5" r="2.4" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M1.5 13.5c0-2.6 2-4 4.5-4s4.5 1.4 4.5 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <path d="M11 4.5h3.2M12.6 3v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+          <span style="position:absolute;top:1px;right:3px;width:7px;height:7px;border-radius:50%;background:hsl(8 90% 52%);z-index:5;"></span>
+        </button>
+        <!-- Share -->
+        <button class="header-icon" id="share-btn" title="分享" style="cursor:pointer;border:none;background:var(--glass-bg);">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+            <circle cx="11.5" cy="3" r="1.8" stroke="currentColor" stroke-width="1.2"/>
+            <circle cx="11.5" cy="12" r="1.8" stroke="currentColor" stroke-width="1.2"/>
+            <circle cx="3.5" cy="7.5" r="1.8" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M5.2 6.6l4.6-2.7M5.2 8.4l4.6 2.7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Pager -->
+    <div class="pager-shell">
+      <div class="pager-track" id="pager-track">
+
+        <!-- ── Panel 0: Dashboard ── -->
+        <div class="pager-panel" data-panel="0">
+
+          <div class="tech-row" style="flex-shrink:0;">
+            <span class="jp" style="font-size:10px;letter-spacing:.06em;">プロフィール</span>
+            <span>[ SEASON 01 ]</span>
+          </div>
+
+          <!-- Identity card -->
+          <div class="glass identity-card" style="padding:16px;">
+            <div class="avatar-ring">K</div>
+            <div class="identity-info">
+              <div class="identity-name">Kai</div>
+              <div class="identity-rank">
+                <span class="dot-gem"></span>CHAMPION
+              </div>
+              <div class="identity-sub">台北 · TAIPEI · RZ-0481</div>
+            </div>
+            <div class="identity-right">
+              <button class="edit-btn" onclick="document.getElementById('edit-modal').classList.add('open')" title="編輯資料">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <path d="M9.5 1.5l2 2L4 11H2v-2L9.5 1.5z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <div class="exp-block"><span class="exp-block__val">24,800</span><span class="exp-block__label">CLASH EXP</span></div>
+            </div>
+          </div>
+
+          <!-- Charts card — fills remaining space -->
+          <div class="glass charts-card" style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;">
+            <div class="charts-title" style="flex-shrink:0;">SEASON 01 · 本季表現</div>
+
+            <!-- 3 equal stats -->
+            <div style="flex-shrink:0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:14px;">
+              <div style="display:flex;flex-direction:column;gap:3px;align-items:center;">
+                <div style="font-family:var(--f-mono);font-weight:700;font-size:28px;letter-spacing:-.03em;color:var(--rk-champ);line-height:1;">68%</div>
+                <div style="font-family:var(--f-mono);font-size:8px;letter-spacing:.10em;text-transform:uppercase;color:var(--tx-3);">WIN RATE</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:3px;align-items:center;">
+                <div style="font-family:var(--f-mono);font-weight:700;font-size:28px;letter-spacing:-.03em;color:var(--tx);line-height:1;">#3</div>
+                <div style="font-family:var(--f-mono);font-size:8px;letter-spacing:.10em;text-transform:uppercase;color:var(--tx-3);">月排行</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:3px;align-items:center;">
+                <div style="font-family:var(--f-mono);font-weight:700;font-size:28px;letter-spacing:-.03em;color:var(--tx);line-height:1;">142</div>
+                <div style="font-family:var(--f-mono);font-size:8px;letter-spacing:.10em;text-transform:uppercase;color:var(--tx-3);">對戰數</div>
+              </div>
+            </div>
+
+            <!-- Radar chart: finish types -->
+            <div style="flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+              <svg viewBox="-10 -14 160 158" style="width:100%;overflow:hidden;">
+                <!-- Grid diamonds -->
+                <polygon points="70,54 81,65 70,76 59,65" fill="none" stroke="var(--line)" stroke-width="0.8"/>
+                <polygon points="70,43 92,65 70,87 48,65" fill="none" stroke="var(--line)" stroke-width="0.8"/>
+                <polygon points="70,32 103,65 70,98 37,65" fill="none" stroke="var(--line)" stroke-width="0.8"/>
+                <polygon points="70,21 114,65 70,109 26,65" fill="none" stroke="var(--line)" stroke-width="1"/>
+                <!-- Axis lines -->
+                <line x1="70" y1="21" x2="70" y2="109" stroke="var(--line)" stroke-width="0.8"/>
+                <line x1="26" y1="65" x2="114" y2="65" stroke="var(--line)" stroke-width="0.8"/>
+                <!-- Data polygon: BURST(top)=1.0, OVER(right)=0.789, SPIN(bottom)=0.474, XTREME(left)=0.289 -->
+                <polygon points="70,21 104.7,65 70,85.9 57.3,65"
+                  fill="color-mix(in srgb,var(--rk-champ) 15%,transparent)"
+                  stroke="var(--rk-champ)" stroke-width="1.5" stroke-linejoin="round"/>
+                <!-- Data dots -->
+                <circle cx="70"    cy="21"   r="3.5" fill="hsl(8 90% 55%)"  stroke="white" stroke-width="1.2"/>
+                <circle cx="104.7" cy="65"   r="3.5" fill="hsl(25 90% 50%)" stroke="white" stroke-width="1.2"/>
+                <circle cx="70"    cy="85.9" r="3.5" fill="hsl(220 70% 55%)" stroke="white" stroke-width="1.2"/>
+                <circle cx="57.3"  cy="65"   r="3.5" fill="hsl(280 65% 55%)" stroke="white" stroke-width="1.2"/>
+                <!-- Labels -->
+                <text x="70" y="9" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" font-weight="700" fill="hsl(8 90% 55%)">BURST</text>
+                <text x="119" y="68" text-anchor="start"  font-family="Space Mono,monospace" font-size="8" font-weight="700" fill="hsl(25 90% 50%)">OVER</text>
+                <text x="70" y="124" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" font-weight="700" fill="hsl(220 70% 55%)">SPIN</text>
+                <text x="21" y="68" text-anchor="end"    font-family="Space Mono,monospace" font-size="8" font-weight="700" fill="hsl(280 65% 55%)">XTREME</text>
+              </svg>
+            </div>
+
+            <!-- Key highlights -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;margin-top:auto;padding-top:14px;border-top:1px solid var(--line);flex-shrink:0;">
+              <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+                <span style="font-family:var(--f-mono);font-size:8.5px;letter-spacing:.10em;text-transform:uppercase;color:var(--tx-3);">最長連勝</span>
+                <span style="font-family:var(--f-mono);font-size:18px;font-weight:700;color:var(--tx);line-height:1;">8 連勝</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+                <span style="font-family:var(--f-mono);font-size:8.5px;letter-spacing:.10em;text-transform:uppercase;color:var(--tx-3);">常見對手</span>
+                <span style="font-family:var(--f-mono);font-size:18px;font-weight:700;color:var(--tx);line-height:1;">Vortex</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+                <span style="font-family:var(--f-mono);font-size:8.5px;letter-spacing:.10em;text-transform:uppercase;color:var(--tx-3);">XTREME 終結</span>
+                <span style="font-family:var(--f-mono);font-size:18px;font-weight:700;color:var(--rk-champ);line-height:1;">×11</span>
+              </div>
+            </div>
+            <!-- swipe hint -->
+            <div style="display:flex;align-items:center;justify-content:center;gap:5px;padding-top:12px;flex-shrink:0;">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="opacity:.30;"><path d="M2 7h10M8 3.5l3.5 3.5L8 10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span style="font-family:var(--f-mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--tx-3);">滑動查看戰績</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── Panel 1: Battle history ── -->
+        <div class="pager-panel" data-panel="1">
+
+          <div class="tech-row" style="flex-shrink:0;">
+            <span class="jp" style="font-size:10px;letter-spacing:.06em;">バトル履歴</span>
+            <span>BATTLE HISTORY</span>
+          </div>
+
+          <div class="glass" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px;border-radius:14px;">
+            <div class="tech-row" style="margin-bottom:10px;">
+              <span>RECENT BATTLES</span>
+              <span style="font-family:var(--f-mono);font-size:9.5px;color:var(--tx-3);">45 場 · 本月</span>
+            </div>
+            <div class="battle-row">
+              <span class="result-tag result-tag--win">WIN</span>
+              <span class="battle-opponent">vs Vortex</span>
+              <div class="battle-meta"><span class="battle-score">4 : 2</span><span class="battle-finish">BURST FIN</span></div>
+            </div>
+            <div class="battle-row">
+              <span class="result-tag result-tag--loss">LOSS</span>
+              <span class="battle-opponent">vs TornadoKnight</span>
+              <div class="battle-meta"><span class="battle-score">3 : 4</span><span class="battle-finish">OVER FIN</span></div>
+            </div>
+            <div class="battle-row">
+              <span class="result-tag result-tag--win">WIN</span>
+              <span class="battle-opponent">vs StormDragon</span>
+              <div class="battle-meta"><span class="battle-score">4 : 1</span><span class="battle-finish">XTREME FIN</span></div>
+            </div>
+            <div class="battle-row">
+              <span class="result-tag result-tag--win">WIN</span>
+              <span class="battle-opponent">vs BladeKing</span>
+              <div class="battle-meta"><span class="battle-score">4 : 3</span><span class="battle-finish">SPIN FIN</span></div>
+            </div>
+            <div class="battle-row">
+              <span class="result-tag result-tag--loss">LOSS</span>
+              <span class="battle-opponent">vs Zenith</span>
+              <div class="battle-meta"><span class="battle-score">2 : 4</span><span class="battle-finish">BURST FIN</span></div>
+            </div>
+            <div class="battle-row">
+              <span class="result-tag result-tag--win">WIN</span>
+              <span class="battle-opponent">vs IronClaw</span>
+              <div class="battle-meta"><span class="battle-score">4 : 0</span><span class="battle-finish">BURST FIN</span></div>
+            </div>
+            <div class="battle-row">
+              <span class="result-tag result-tag--win">WIN</span>
+              <span class="battle-opponent">vs Phoenix</span>
+              <div class="battle-meta"><span class="battle-score">4 : 2</span><span class="battle-finish">OVER FIN</span></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── Panel 2: Season history ── -->
+        <div class="pager-panel" data-panel="2">
+
+          <div class="tech-row" style="flex-shrink:0;">
+            <span class="jp" style="font-size:10px;letter-spacing:.06em;">シーズン履歴</span>
+            <span>SEASON HISTORY</span>
+          </div>
+
+          <div class="glass" style="flex-shrink:0;padding:14px;border-radius:14px;">
+            <div class="tech-row" style="margin-bottom:10px;">
+              <span>RANKED SEASONS</span>
+              <span style="font-family:var(--f-mono);font-size:9px;color:var(--tx-3);">3 SEASONS</span>
+            </div>
+
+            <!-- S01 -->
+            <div class="season-entry">
+              <span class="season-badge">S01</span>
+              <span class="season-rank-chip" style="color:var(--rk-champ);border-color:var(--rk-champ);background:color-mix(in srgb,var(--rk-champ) 10%,transparent);">
+                <span class="gem" style="background:var(--rk-champ);"></span>CHAMPION
+              </span>
+              <div class="season-stat-mini">
+                <span>97W / 45L</span>
+                <span style="color:var(--rk-champ);">#3</span>
+              </div>
+            </div>
+
+            <!-- S00 -->
+            <div class="season-entry">
+              <span class="season-badge">S00</span>
+              <span class="season-rank-chip" style="color:var(--rk-primus);border-color:var(--rk-primus);background:color-mix(in srgb,var(--rk-primus) 10%,transparent);">
+                <span class="gem" style="background:var(--rk-primus);"></span>PRIMUS
+              </span>
+              <div class="season-stat-mini">
+                <span>74W / 38L</span>
+                <span>#7</span>
+              </div>
+            </div>
+
+            <!-- BETA -->
+            <div class="season-entry">
+              <span class="season-badge">BETA</span>
+              <span class="season-rank-chip" style="color:var(--rk-ret);border-color:var(--rk-ret);background:color-mix(in srgb,var(--rk-ret) 10%,transparent);">
+                <span class="gem" style="background:var(--rk-ret);"></span>RET
+              </span>
+              <div class="season-stat-mini">
+                <span>31W / 27L</span>
+                <span>#22</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rank progression chart -->
+          <div class="glass" style="flex-shrink:0;padding:14px;border-radius:14px;">
+            <div class="charts-title">RANK PROGRESSION</div>
+            <svg width="100%" height="64" viewBox="0 0 280 64" preserveAspectRatio="none" style="overflow:visible;">
+              <!-- Grid lines -->
+              <line x1="0" y1="0" x2="280" y2="0" stroke="var(--line)" stroke-width="1"/>
+              <line x1="0" y1="32" x2="280" y2="32" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 3"/>
+              <line x1="0" y1="64" x2="280" y2="64" stroke="var(--line)" stroke-width="1"/>
+              <!-- Path: BETA(RET)=52 → S00(PRIMUS)=32 → S01(CHAMP)=4 -->
+              <polyline points="20,52 140,32 260,4"
+                fill="none" stroke="var(--rk-champ)" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- Area fill -->
+              <polygon points="20,52 140,32 260,4 260,64 20,64"
+                fill="color-mix(in srgb,var(--rk-champ) 10%,transparent)"/>
+              <!-- Points -->
+              <circle cx="20" cy="52" r="4" fill="var(--rk-ret)" stroke="white" stroke-width="1.5"/>
+              <circle cx="140" cy="32" r="4" fill="var(--rk-primus)" stroke="white" stroke-width="1.5"/>
+              <circle cx="260" cy="4" r="5" fill="var(--rk-champ)" stroke="white" stroke-width="1.5"/>
+              <!-- Labels -->
+              <text x="20" y="62" text-anchor="middle" font-family="Space Mono" font-size="8" fill="var(--tx-3)">BETA</text>
+              <text x="140" y="62" text-anchor="middle" font-family="Space Mono" font-size="8" fill="var(--tx-3)">S00</text>
+              <text x="260" y="62" text-anchor="middle" font-family="Space Mono" font-size="8" fill="var(--tx-3)">S01</text>
+            </svg>
+          </div>
+
+        </div>
+
+        <!-- ── Panel 3: Friends ── -->
+        <div class="pager-panel" data-panel="3">
+
+          <div class="tech-row" style="flex-shrink:0;">
+            <span class="jp" style="font-size:10px;letter-spacing:.06em;">フレンド</span>
+            <span>FRIENDS</span>
+          </div>
+
+          <!-- Add friend button (fixed) -->
+          <button class="ff-add-btn" id="addfriend-open" style="flex-shrink:0;">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            加好友
+          </button>
+
+          <div class="glass" style="flex:1;min-height:0;overflow:hidden;border-radius:14px;display:flex;flex-direction:column;">
+            <div style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px;">
+
+            <!-- Pending requests -->
+            <div class="ff-section-label"><span>好友邀請</span><span style="color:hsl(8 90% 52%);">2 待接受</span></div>
+            <div id="req-list">
+              <div class="req-row" data-name="IronClaw" onclick="viewProfile('IronClaw')" style="cursor:pointer;">
+                <div class="ff-av" style="border-color:var(--rk-greg);color:var(--rk-greg);">I</div>
+                <div class="ff-info">
+                  <div class="ff-name">IronClaw</div>
+                  <div class="ff-chip" style="color:var(--rk-greg);"><span class="gem" style="background:var(--rk-greg);"></span>GREGARIVS</div>
+                </div>
+                <button class="ff-btn ff-btn--ghost" onclick="event.stopPropagation();resolveReq(this,false)">拒絕</button>
+                <button class="ff-btn ff-btn--accept" onclick="event.stopPropagation();resolveReq(this,true)">接受</button>
+              </div>
+              <div class="req-row" data-name="Zenith" onclick="viewProfile('Zenith')" style="cursor:pointer;">
+                <div class="ff-av" style="border-color:var(--rk-prov);color:var(--rk-prov);">Z</div>
+                <div class="ff-info">
+                  <div class="ff-name">Zenith</div>
+                  <div class="ff-chip" style="color:var(--rk-prov);"><span class="gem" style="background:var(--rk-prov);"></span>PROVOCATOR</div>
+                </div>
+                <button class="ff-btn ff-btn--ghost" onclick="event.stopPropagation();resolveReq(this,false)">拒絕</button>
+                <button class="ff-btn ff-btn--accept" onclick="event.stopPropagation();resolveReq(this,true)">接受</button>
+              </div>
+            </div>
+
+            <!-- Friends list -->
+            <div class="ff-section-label" style="margin-top:16px;"><span>我的好友</span><span id="friend-count" style="color:var(--tx-3);">5</span></div>
+            <div id="friend-list">
+              <div class="friend-item" onclick="viewProfile('Vortex')" style="cursor:pointer;">
+                <div class="ff-av" style="border-color:var(--rk-primus);color:var(--rk-primus);">V</div>
+                <div class="ff-info"><div class="ff-name">Vortex</div><div class="ff-chip" style="color:var(--rk-primus);"><span class="gem" style="background:var(--rk-primus);"></span>PRIMUS</div></div>
+                <button class="ff-icon-btn" onclick="event.stopPropagation();deleteFriend(this,'Vortex')" title="刪除好友"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 4h9M5.5 4V2.5h3V4M3.5 4l.5 7.5h6l.5-7.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              </div>
+              <div class="friend-item" onclick="viewProfile('TornadoKnight')" style="cursor:pointer;">
+                <div class="ff-av" style="border-color:var(--rk-champ);color:var(--rk-champ);">T</div>
+                <div class="ff-info"><div class="ff-name">TornadoKnight</div><div class="ff-chip" style="color:var(--rk-champ);"><span class="gem" style="background:var(--rk-champ);"></span>CHAMPION</div></div>
+                <button class="ff-icon-btn" onclick="event.stopPropagation();deleteFriend(this,'TornadoKnight')" title="刪除好友"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 4h9M5.5 4V2.5h3V4M3.5 4l.5 7.5h6l.5-7.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              </div>
+              <div class="friend-item" onclick="viewProfile('StormDragon')" style="cursor:pointer;">
+                <div class="ff-av" style="border-color:var(--rk-primus);color:var(--rk-primus);">S</div>
+                <div class="ff-info"><div class="ff-name">StormDragon</div><div class="ff-chip" style="color:var(--rk-primus);"><span class="gem" style="background:var(--rk-primus);"></span>PRIMUS</div></div>
+                <button class="ff-icon-btn" onclick="event.stopPropagation();deleteFriend(this,'StormDragon')" title="刪除好友"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 4h9M5.5 4V2.5h3V4M3.5 4l.5 7.5h6l.5-7.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              </div>
+              <div class="friend-item" onclick="viewProfile('NovaBlade')" style="cursor:pointer;">
+                <div class="ff-av" style="border-color:var(--rk-sec);color:var(--rk-sec);">N</div>
+                <div class="ff-info"><div class="ff-name">NovaBlade</div><div class="ff-chip" style="color:var(--rk-sec);"><span class="gem" style="background:var(--rk-sec);"></span>SECUTOR</div></div>
+                <button class="ff-icon-btn" onclick="event.stopPropagation();deleteFriend(this,'NovaBlade')" title="刪除好友"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 4h9M5.5 4V2.5h3V4M3.5 4l.5 7.5h6l.5-7.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              </div>
+              <div class="friend-item" onclick="viewProfile('BladeKing')" style="cursor:pointer;">
+                <div class="ff-av" style="border-color:var(--rk-ret);color:var(--rk-ret);">B</div>
+                <div class="ff-info"><div class="ff-name">BladeKing</div><div class="ff-chip" style="color:var(--rk-ret);"><span class="gem" style="background:var(--rk-ret);"></span>RETIARIVS</div></div>
+                <button class="ff-icon-btn" onclick="event.stopPropagation();deleteFriend(this,'BladeKing')" title="刪除好友"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 4h9M5.5 4V2.5h3V4M3.5 4l.5 7.5h6l.5-7.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              </div>
+            </div>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div><!-- /pager-track -->
+
+      <div class="pager-footer">
+        <div class="dot active" onclick="goPanel(0)"></div>
+        <div class="dot" onclick="goPanel(1)"></div>
+        <div class="dot" onclick="goPanel(2)"></div>
+        <div class="dot" onclick="goPanel(3)"></div>
+      </div>
+    </div>
+
+    <!-- Tech row -->
+    <div class="tech-row" style="padding:4px 16px 10px;flex-shrink:0;">
+      <span class="jp" style="font-size:10px;letter-spacing:.06em;">プロフィール</span>
+      <span>PROFILE_#RZ0481</span>
+    </div>
+
+    <!-- Crosshairs -->
+  </div>
+
+  <!-- ── Share modal ── -->
+  <div class="share-overlay" id="share-overlay" style="position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 20px;opacity:0;pointer-events:none;transition:opacity .25s;">
+    <div id="share-card" style="width:100%;max-width:340px;border-radius:20px;overflow:hidden;background:#0c0c10;box-shadow:0 24px 64px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.10);transform:translateY(20px) scale(.96);transition:transform .3s cubic-bezier(.34,1.56,.64,1);">
+      <!-- Band -->
+      <div style="padding:18px 20px 14px;background:linear-gradient(135deg,color-mix(in srgb,var(--rk-champ) 28%,#0c0c10) 0%,#0c0c10 60%);border-bottom:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden;">
+        <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--rk-champ) 30%,transparent),transparent 65%);"></div>
+        <div style="font-family:var(--f-mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.38);margin-bottom:10px;">AMPHICLASH · SEASON 01</div>
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;">
+          <div style="font-family:var(--f-display);font-weight:900;font-size:42px;letter-spacing:-.03em;line-height:1;color:#fff;">Kai</div>
+          <div style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px 5px 8px;border-radius:7px;border:1px solid color-mix(in srgb,var(--rk-champ) 55%,transparent);background:color-mix(in srgb,var(--rk-champ) 18%,transparent);font-family:var(--f-mono);font-size:10px;font-weight:700;letter-spacing:.07em;color:var(--rk-champ);flex-shrink:0;margin-bottom:4px;">
+            <span style="width:9px;height:9px;background:var(--rk-champ);border-radius:2px;transform:rotate(45deg);box-shadow:0 0 6px var(--rk-champ);flex-shrink:0;"></span>CHAMPION
+          </div>
+        </div>
+      </div>
+      <!-- Stats -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:rgba(255,255,255,.06);">
+        <div style="background:#0c0c10;padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="font-family:var(--f-mono);font-weight:700;font-size:18px;color:var(--rk-champ);letter-spacing:-.01em;">68%</div>
+          <div style="font-family:var(--f-mono);font-size:8px;letter-spacing:.10em;text-transform:uppercase;color:rgba(255,255,255,.36);text-align:center;">WIN RATE</div>
+        </div>
+        <div style="background:#0c0c10;padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="font-family:var(--f-mono);font-weight:700;font-size:18px;color:#fff;">#3</div>
+          <div style="font-family:var(--f-mono);font-size:8px;letter-spacing:.10em;text-transform:uppercase;color:rgba(255,255,255,.36);text-align:center;">月排行</div>
+        </div>
+        <div style="background:#0c0c10;padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="font-family:var(--f-mono);font-weight:700;font-size:18px;color:#fff;">142</div>
+          <div style="font-family:var(--f-mono);font-size:8px;letter-spacing:.10em;text-transform:uppercase;color:rgba(255,255,255,.36);text-align:center;">BATTLES</div>
+        </div>
+      </div>
+      <!-- QR -->
+      <div style="padding:16px 20px 10px;display:flex;flex-direction:column;align-items:center;gap:10px;border-top:1px solid rgba(255,255,255,.06);">
+        <div style="background:white;border-radius:10px;padding:12px;box-shadow:0 4px 20px rgba(0,0,0,.30);">
+          <canvas id="share-qr" width="200" height="200"></canvas>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:var(--f-mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:3px;">PLAYER ID</div>
+          <div style="font-family:var(--f-display);font-weight:900;font-size:22px;letter-spacing:.06em;color:#fff;">RZ-0481</div>
+          <div style="font-family:var(--f-mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.30);margin-top:3px;">掃描加為好友 · 查看個人資料</div>
+        </div>
+      </div>
+    </div>
+    <!-- Actions -->
+    <div style="width:100%;max-width:340px;margin-top:14px;display:flex;flex-direction:column;gap:8px;">
+      <div style="font-family:var(--f-mono);font-size:9.5px;letter-spacing:.10em;text-transform:uppercase;color:rgba(255,255,255,.38);text-align:center;">截圖或選擇分享方式</div>
+      <div style="display:flex;gap:8px;">
+        <button style="flex:1;padding:10px 8px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);font-family:var(--f-mono);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.70);cursor:pointer;">LINE</button>
+        <button style="flex:1;padding:10px 8px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);font-family:var(--f-mono);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.70);cursor:pointer;">IG STORY</button>
+        <button style="flex:1;padding:10px 8px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);font-family:var(--f-mono);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.70);cursor:pointer;">複製</button>
+      </div>
+      <button id="close-share" style="width:100%;padding:12px;border-radius:10px;border:none;background:rgba(255,255,255,.10);font-family:var(--f-mono);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.50);cursor:pointer;">關閉</button>
+    </div>
+  </div>
+
+  <!-- ── Edit modal ── -->
+  <div id="edit-modal" style="position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .25s;">
+    <div style="width:100%;max-width:375px;background:#ffffff;border-radius:20px 20px 0 0;padding:24px 20px 36px;box-shadow:0 -8px 40px rgba(0,0,0,.20);transform:translateY(40px);transition:transform .3s cubic-bezier(.34,1.56,.64,1);" id="edit-sheet">
+      <div style="font-family:var(--f-mono);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx-3);margin-bottom:16px;">編輯個人資料</div>
+      <div style="overflow-y:auto;max-height:60dvh;display:flex;flex-direction:column;gap:12px;padding-right:2px;">
+        <!-- Avatar row -->
+        <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--glass-bg);cursor:pointer;">
+          <div style="width:52px;height:52px;border-radius:50%;border:2.5px solid var(--rk-champ);display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-weight:900;font-size:22px;color:var(--rk-champ);flex-shrink:0;">K</div>
+          <div>
+            <div style="font-family:var(--f-mono);font-size:10px;font-weight:700;color:var(--tx);">更換頭像</div>
+            <div style="font-family:var(--f-mono);font-size:9px;color:var(--tx-3);margin-top:2px;">選擇文字 / 上傳圖片</div>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="margin-left:auto;opacity:.4;"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <!-- Nickname -->
+        <div>
+          <div style="font-family:var(--f-mono);font-size:9px;letter-spacing:.10em;text-transform:uppercase;color:var(--tx-3);margin-bottom:5px;">玩家暱稱</div>
+          <input type="text" value="Kai" style="width:100%;font-family:var(--f-display);font-weight:900;font-size:20px;padding:10px 14px;border-radius:10px;border:1px solid var(--glass-bd);background:var(--glass-bg);color:var(--tx);outline:none;"/>
+        </div>
+        <!-- City -->
+        <div>
+          <div style="font-family:var(--f-mono);font-size:9px;letter-spacing:.10em;text-transform:uppercase;color:var(--tx-3);margin-bottom:5px;">城市</div>
+          <input type="text" value="台北 · TAIPEI" style="width:100%;font-family:var(--f-mono);font-size:14px;padding:10px 14px;border-radius:10px;border:1px solid var(--glass-bd);background:var(--glass-bg);color:var(--tx);outline:none;"/>
+        </div>
+        <!-- Phone -->
+        <div>
+          <div style="font-family:var(--f-mono);font-size:9px;letter-spacing:.10em;text-transform:uppercase;color:var(--tx-3);margin-bottom:5px;">手機綁定</div>
+          <div style="display:flex;gap:8px;">
+            <input type="tel" placeholder="+886 9XX XXX XXX" style="flex:1;font-family:var(--f-mono);font-size:13px;padding:10px 14px;border-radius:10px;border:1px solid var(--glass-bd);background:var(--glass-bg);color:var(--tx);outline:none;"/>
+            <button style="padding:10px 12px;border-radius:10px;border:1px solid var(--glass-bd);background:var(--glass-bg);font-family:var(--f-mono);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx-2);cursor:pointer;white-space:nowrap;">發送驗證碼</button>
+          </div>
+          <div style="font-family:var(--f-mono);font-size:9px;color:var(--tx-3);margin-top:5px;">○ 目前未綁定手機號碼</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button onclick="document.getElementById('edit-modal').classList.remove('open')" style="flex:1;padding:13px;border-radius:12px;border:1px solid var(--glass-bd);background:var(--glass-bg);font-family:var(--f-mono);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx-3);cursor:pointer;">取消</button>
+        <button onclick="document.getElementById('edit-modal').classList.remove('open')" style="flex:2;padding:13px;border-radius:12px;border:1px solid rgba(57,255,20,.40);background:rgba(57,255,20,.12);font-family:var(--f-mono);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#0c2b0e;cursor:pointer;">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Add friend sheet ── -->
+  <div id="addfriend-modal" style="position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .25s;">
+    <div style="width:100%;max-width:375px;background:#ffffff;border-radius:20px 20px 0 0;padding:22px 20px 32px;box-shadow:0 -8px 40px rgba(0,0,0,.20);transform:translateY(40px);transition:transform .3s cubic-bezier(.34,1.56,.64,1);" id="addfriend-sheet">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <span style="font-family:var(--f-mono);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx-3);">加好友</span>
+        <button id="addfriend-close" style="background:none;border:none;font-size:20px;color:var(--tx-3);cursor:pointer;line-height:1;">×</button>
+      </div>
+
+      <!-- Player ID input -->
+      <div style="font-family:var(--f-mono);font-size:9px;letter-spacing:.10em;text-transform:uppercase;color:var(--tx-3);margin-bottom:6px;">輸入 PLAYER ID</div>
+      <div style="display:flex;gap:8px;margin-bottom:18px;">
+        <input id="pid-input" type="text" placeholder="RZ-XXXX" style="flex:1;font-family:var(--f-mono);font-size:14px;letter-spacing:.06em;padding:11px 14px;border-radius:10px;border:none;background:rgba(255,255,255,0.7);color:var(--tx);outline:none;box-shadow:inset 2px 3px 7px rgba(20,32,46,0.10),inset -2px -2px 6px rgba(255,255,255,0.85);text-transform:uppercase;" />
+        <button onclick="sendByPid()" style="padding:11px 16px;border-radius:10px;border:none;background:var(--tx);color:#fff;font-family:var(--f-mono);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">送出</button>
+      </div>
+
+      <!-- QR scan -->
+      <div class="ff-method" onclick="openScanner()">
+        <div class="ff-method__ic"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 6V3a1 1 0 0 1 1-1h3M16 6V3a1 1 0 0 0-1-1h-3M2 12v3a1 1 0 0 0 1 1h3M16 12v3a1 1 0 0 1-1 1h-3M5 9h8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+        <div style="flex:1;"><div class="ff-method__t">掃描對方 QR</div><div class="ff-method__s">面對面快速加好友</div></div>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="opacity:.4;"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+
+      <!-- Recent opponents -->
+      <div style="font-family:var(--f-mono);font-size:9px;letter-spacing:.10em;text-transform:uppercase;color:var(--tx-3);margin:14px 0 8px;">最近對戰對手</div>
+      <div id="recent-list">
+        <div class="req-row" data-name="Phoenix">
+          <div class="ff-av" style="border-color:var(--rk-tiro);color:var(--rk-tiro);">P</div>
+          <div class="ff-info"><div class="ff-name">Phoenix</div><div class="ff-chip" style="color:var(--rk-tiro);"><span class="gem" style="background:var(--rk-tiro);"></span>TIRO</div></div>
+          <button class="ff-btn ff-btn--accept" onclick="addRecent(this)">+ 加好友</button>
+        </div>
+        <div class="req-row" data-name="CrystalFang">
+          <div class="ff-av" style="border-color:var(--rk-ret);color:var(--rk-ret);">C</div>
+          <div class="ff-info"><div class="ff-name">CrystalFang</div><div class="ff-chip" style="color:var(--rk-ret);"><span class="gem" style="background:var(--rk-ret);"></span>RETIARIVS</div></div>
+          <button class="ff-btn ff-btn--accept" onclick="addRecent(this)">+ 加好友</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Friend info sheet ── -->
+  <div id="finfo-modal" style="position:fixed;inset:0;z-index:101;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .25s;">
+    <div id="finfo-sheet" style="width:100%;max-width:375px;background:#ffffff;border-radius:20px 20px 0 0;padding:22px 20px 30px;box-shadow:0 -8px 40px rgba(0,0,0,.20);transform:translateY(40px);transition:transform .3s cubic-bezier(.34,1.56,.64,1);">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+        <div id="fi-av" class="ff-av" style="width:54px;height:54px;font-size:21px;">V</div>
+        <div style="flex:1;min-width:0;">
+          <div id="fi-name" style="font-family:var(--f-display);font-weight:900;font-size:24px;letter-spacing:-.02em;color:var(--tx);line-height:1;">Vortex</div>
+          <div id="fi-chip" class="ff-chip" style="margin-top:6px;"><span class="gem"></span>PRIMUS</div>
+        </div>
+        <button id="finfo-close" style="background:none;border:none;font-size:20px;color:var(--tx-3);cursor:pointer;line-height:1;align-self:flex-start;">×</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border:1px solid var(--line);border-radius:11px;overflow:hidden;margin-bottom:16px;">
+        <div style="padding:11px 8px;text-align:center;border-right:1px solid var(--line);"><div id="fi-wr" style="font-family:var(--f-mono);font-weight:700;font-size:16px;color:var(--tx);line-height:1;">63%</div><div style="font-family:var(--f-mono);font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--tx-3);margin-top:4px;">勝率</div></div>
+        <div style="padding:11px 8px;text-align:center;border-right:1px solid var(--line);"><div id="fi-rank" style="font-family:var(--f-mono);font-weight:700;font-size:16px;color:var(--tx);line-height:1;">#5</div><div style="font-family:var(--f-mono);font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--tx-3);margin-top:4px;">月排名</div></div>
+        <div style="padding:11px 8px;text-align:center;"><div id="fi-bt" style="font-family:var(--f-mono);font-weight:700;font-size:16px;color:var(--tx);line-height:1;">88</div><div style="font-family:var(--f-mono);font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--tx-3);margin-top:4px;">對戰數</div></div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="deleteFromSheet()" class="ff-icon-btn" style="width:auto;padding:0 14px;height:44px;border-radius:12px;" title="刪除好友"><svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M2.5 4h9M5.5 4V2.5h3V4M3.5 4l.5 7.5h6l.5-7.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button onclick="showToast('已送出對戰邀約')" style="flex:1;height:44px;border-radius:12px;border:none;background:var(--tx);color:#fff;font-family:var(--f-mono);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">邀約對戰</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Confirm delete modal ── -->
+  <div id="confirm-modal" style="position:fixed;inset:0;z-index:102;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .25s;">
+    <div id="confirm-box" style="width:100%;max-width:300px;background:rgba(255,255,255,0.72);-webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);border-radius:18px;padding:24px 20px 16px;box-shadow:6px 8px 26px rgba(20,32,46,0.16),-4px -4px 14px rgba(255,255,255,0.7),inset 0 1px 0 rgba(255,255,255,0.95);transform:scale(.94);transition:transform .25s cubic-bezier(.34,1.56,.64,1);text-align:center;position:relative;">
+      <div id="confirm-icon" style="width:46px;height:46px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.6);color:hsl(8 80% 50%);box-shadow:3px 4px 9px rgba(20,32,46,0.08),-3px -3px 7px rgba(255,255,255,0.85),inset 0 1px 0 rgba(255,255,255,0.9);"><svg width="19" height="19" viewBox="0 0 14 14" fill="none"><path d="M2.5 4h9M5.5 4V2.5h3V4M3.5 4l.5 7.5h6l.5-7.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div id="confirm-title" style="font-family:var(--f-display);font-weight:900;font-size:18px;color:var(--tx);margin-bottom:7px;">刪除好友？</div>
+      <div id="confirm-text" style="font-family:var(--f-mono);font-size:11px;color:var(--tx-3);line-height:1.5;margin-bottom:20px;">確定要移除這位好友嗎？</div>
+      <div style="display:flex;gap:9px;">
+        <button id="confirm-cancel" style="flex:1;padding:13px;border-radius:12px;border:none;background:rgba(255,255,255,0.6);box-shadow:3px 4px 9px rgba(20,32,46,0.08),-3px -3px 7px rgba(255,255,255,0.85),inset 0 1px 0 rgba(255,255,255,0.9);font-family:var(--f-mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx-2);cursor:pointer;">取消</button>
+        <button id="confirm-ok" style="flex:1;padding:13px;border-radius:12px;border:none;background:hsl(8 80% 52%);color:#fff;box-shadow:3px 4px 12px hsla(8,80%,50%,0.32),inset 0 1px 0 rgba(255,255,255,0.28);font-family:var(--f-mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;">刪除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" style="position:fixed;left:50%;bottom:64px;z-index:120;transform:translateX(-50%) translateY(12px);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;display:flex;align-items:center;gap:8px;padding:11px 18px;border-radius:100px;background:var(--tx);color:#fff;font-family:var(--f-mono);font-size:11px;font-weight:700;letter-spacing:.04em;box-shadow:0 8px 24px rgba(20,32,46,.28);max-width:88vw;">
+    <span style="width:6px;height:6px;border-radius:50%;background:var(--neon);box-shadow:0 0 5px var(--neon);flex-shrink:0;"></span>
+    <span id="toast-msg">已送出</span>
+  </div>
+
+  <!-- QR canvas -->
+  <script>
+    (function() {
+      const canvas = document.getElementById('share-qr');
+      const ctx = canvas.getContext('2d');
+      const size = 200, M = 21, pad = 6;
+      const cell = (size - pad*2) / M, o = pad;
+      ctx.fillStyle = 'white'; ctx.fillRect(0,0,size,size);
+      function finder(ox,oy) {
+        ctx.fillStyle='#1A1A1A'; ctx.fillRect(o+ox*cell,o+oy*cell,7*cell,7*cell);
+        ctx.fillStyle='white'; ctx.fillRect(o+(ox+1)*cell,o+(oy+1)*cell,5*cell,5*cell);
+        ctx.fillStyle='#1A1A1A'; ctx.fillRect(o+(ox+2)*cell,o+(oy+2)*cell,3*cell,3*cell);
+      }
+      finder(0,0); finder(14,0); finder(0,14);
+      for(let i=8;i<=12;i++){if(i%2===0){ctx.fillStyle='#1A1A1A';ctx.fillRect(o+i*cell,o+6*cell,cell,cell);ctx.fillRect(o+6*cell,o+i*cell,cell,cell);}}
+      let seed=481*1103515245+12345;
+      function rand(){seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;}
+      ctx.fillStyle='#1A1A1A';
+      for(let r=0;r<M;r++)for(let c=0;c<M;c++){
+        if(r<8&&c<8)continue;if(r<8&&c>12)continue;
+        if(r>12&&c<8)continue;if(r===6||c===6)continue;
+        if(rand()>0.52)ctx.fillRect(o+c*cell,o+r*cell,cell,cell);
+      }
+    })();
+  </script>
+
+  <!-- Pager + modals logic -->
+  <script>
+    const track = document.getElementById('pager-track');
+    const dots  = document.querySelectorAll('.dot');
+    function goPanel(idx) { track.scrollTo({left:idx*track.offsetWidth,behavior:'smooth'}); }
+    track.addEventListener('scroll',function(){
+      const idx=Math.round(track.scrollLeft/track.offsetWidth);
+      dots.forEach((d,i)=>d.classList.toggle('active',i===idx));
+    },{passive:true});
+
+    function openModal(id) {
+      const m=document.getElementById(id); m.style.pointerEvents='auto'; m.style.opacity='1';
+      const sheet=m.querySelector('[id$="-sheet"],div:nth-child(1),#edit-sheet,#share-card');
+      if(m.id==='edit-modal') document.getElementById('edit-sheet').style.transform='translateY(0)';
+      if(m.id==='share-overlay') document.getElementById('share-card').style.transform='translateY(0) scale(1)';
+    }
+    function closeModal(id) {
+      const m=document.getElementById(id); m.style.opacity='0'; m.style.pointerEvents='none';
+      if(m.id==='edit-modal') document.getElementById('edit-sheet').style.transform='translateY(40px)';
+      if(m.id==='share-overlay') document.getElementById('share-card').style.transform='translateY(20px) scale(.96)';
+    }
+
+    document.getElementById('share-btn').addEventListener('click',()=>openModal('share-overlay'));
+
+    // ── Friends ──
+    document.getElementById('friends-btn').addEventListener('click',()=>goPanel(3));
+    function openAddFriend(){ const m=document.getElementById('addfriend-modal'); m.style.opacity='1'; m.style.pointerEvents='auto'; document.getElementById('addfriend-sheet').style.transform='translateY(0)'; }
+    function closeAddFriend(){ const m=document.getElementById('addfriend-modal'); m.style.opacity='0'; m.style.pointerEvents='none'; document.getElementById('addfriend-sheet').style.transform='translateY(40px)'; }
+    document.getElementById('addfriend-open').addEventListener('click',openAddFriend);
+    document.getElementById('addfriend-close').addEventListener('click',closeAddFriend);
+    document.getElementById('addfriend-modal').addEventListener('click',function(e){ if(e.target===this) closeAddFriend(); });
+
+    const FRIEND_STATS = {
+      'Vortex':{c:'var(--rk-primus)',chip:'PRIMUS',av:'V',wr:'63%',rank:'#5',bt:'88'},
+      'TornadoKnight':{c:'var(--rk-champ)',chip:'CHAMPION',av:'T',wr:'72%',rank:'#1',bt:'156'},
+      'StormDragon':{c:'var(--rk-primus)',chip:'PRIMUS',av:'S',wr:'58%',rank:'#8',bt:'94'},
+      'NovaBlade':{c:'var(--rk-sec)',chip:'SECUTOR',av:'N',wr:'55%',rank:'#12',bt:'70'},
+      'BladeKing':{c:'var(--rk-ret)',chip:'RETIARIVS',av:'B',wr:'49%',rank:'#20',bt:'61'},
+      'IronClaw':{c:'var(--rk-greg)',chip:'GREGARIVS',av:'I',wr:'44%',rank:'#31',bt:'52'},
+      'Zenith':{c:'var(--rk-prov)',chip:'PROVOCATOR',av:'Z',wr:'49%',rank:'#24',bt:'58'}
+    };
+    let finfoName=null, pendingDelete=null;
+    let _toastT=null;
+    function showToast(msg){
+      const t=document.getElementById('toast'); document.getElementById('toast-msg').textContent=msg;
+      t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)';
+      clearTimeout(_toastT);
+      _toastT=setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(12px)'; },2000);
+    }
+    function viewProfile(name){
+      const p=FRIEND_STATS[name]||{c:'var(--tx-3)',chip:'',av:name[0],wr:'-',rank:'-',bt:'-'};
+      const av=document.getElementById('fi-av'); av.textContent=p.av; av.style.borderColor=p.c; av.style.color=p.c;
+      document.getElementById('fi-name').textContent=name;
+      const chip=document.getElementById('fi-chip'); chip.style.color=p.c; chip.innerHTML='<span class="gem" style="background:'+p.c+';"></span>'+p.chip;
+      document.getElementById('fi-wr').textContent=p.wr;
+      document.getElementById('fi-rank').textContent=p.rank;
+      document.getElementById('fi-bt').textContent=p.bt;
+      finfoName=name;
+      const m=document.getElementById('finfo-modal'); m.style.opacity='1'; m.style.pointerEvents='auto'; document.getElementById('finfo-sheet').style.transform='translateY(0)';
+    }
+    function closeFInfo(){ const m=document.getElementById('finfo-modal'); m.style.opacity='0'; m.style.pointerEvents='none'; document.getElementById('finfo-sheet').style.transform='translateY(40px)'; }
+    let confirmCb=null;
+    const ICON_TRASH='<svg width="19" height="19" viewBox="0 0 14 14" fill="none"><path d="M2.5 4h9M5.5 4V2.5h3V4M3.5 4l.5 7.5h6l.5-7.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const ICON_PLUS='<svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+    function showConfirm(o){
+      const ic=document.getElementById('confirm-icon');
+      ic.innerHTML = o.danger?ICON_TRASH:ICON_PLUS;
+      ic.style.color = o.danger?'hsl(8 80% 50%)':'var(--tx)';
+      document.getElementById('confirm-title').textContent = o.title;
+      document.getElementById('confirm-text').textContent = o.text;
+      const ok=document.getElementById('confirm-ok');
+      ok.textContent = o.okLabel;
+      ok.style.background = o.danger?'hsl(8 80% 52%)':'var(--tx)';
+      ok.style.boxShadow = o.danger?'3px 4px 12px hsla(8,80%,50%,0.32),inset 0 1px 0 rgba(255,255,255,0.28)':'3px 4px 12px rgba(20,32,46,0.22),inset 0 1px 0 rgba(255,255,255,0.18)';
+      confirmCb = o.onOk;
+      const m=document.getElementById('confirm-modal'); m.style.opacity='1'; m.style.pointerEvents='auto'; document.getElementById('confirm-box').style.transform='scale(1)';
+    }
+    function askDelete(name){
+      showConfirm({ danger:true, title:'刪除好友？', text:'確定要將 '+name+' 從好友移除嗎？', okLabel:'刪除',
+        onOk:()=>{ const item=[...document.querySelectorAll('#friend-list .friend-item')].find(it=>it.querySelector('.ff-name').textContent.trim()===name);
+          if(item){ item.style.transition='opacity .2s'; item.style.opacity='0'; setTimeout(()=>{ item.remove(); document.getElementById('friend-count').textContent=document.querySelectorAll('#friend-list .friend-item').length; },200); } } });
+    }
+    function closeConfirm(){ const m=document.getElementById('confirm-modal'); m.style.opacity='0'; m.style.pointerEvents='none'; document.getElementById('confirm-box').style.transform='scale(.94)'; confirmCb=null; }
+    function doConfirm(){ const cb=confirmCb; closeConfirm(); if(cb) cb(); }
+    function deleteFriend(btn,name){ askDelete(name); }
+    function deleteFromSheet(){ const n=finfoName; closeFInfo(); setTimeout(()=>askDelete(n),180); }
+    document.getElementById('finfo-close').addEventListener('click',closeFInfo);
+    document.getElementById('finfo-modal').addEventListener('click',function(e){ if(e.target===this) closeFInfo(); });
+    document.getElementById('confirm-cancel').addEventListener('click',closeConfirm);
+    document.getElementById('confirm-ok').addEventListener('click',doConfirm);
+    document.getElementById('confirm-modal').addEventListener('click',function(e){ if(e.target===this) closeConfirm(); });
+    function resolveReq(btn,accept){
+      const row=btn.closest('.req-row'); const name=row.dataset.name;
+      if(accept){
+        const av=row.querySelector('.ff-av'); const chip=row.querySelector('.ff-chip');
+        const item=document.createElement('div');
+        item.className='friend-item'; item.style.cursor='pointer';
+        item.setAttribute('onclick',"viewProfile('"+name+"')");
+        item.innerHTML='<div class="ff-av" style="border-color:'+av.style.borderColor+';color:'+av.style.color+';">'+av.textContent+'</div>'+
+          '<div class="ff-info"><div class="ff-name">'+name+'</div>'+chip.outerHTML+'</div>'+
+          '<button class="ff-icon-btn" onclick="event.stopPropagation();deleteFriend(this,\''+name+'\')" title="刪除好友"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 4h9M5.5 4V2.5h3V4M3.5 4l.5 7.5h6l.5-7.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+        document.getElementById('friend-list').appendChild(item);
+        document.getElementById('friend-count').textContent=document.querySelectorAll('#friend-list .friend-item').length;
+      }
+      row.remove();
+      updateReqCount();
+    }
+    function updateReqCount(){
+      const n=document.querySelectorAll('#req-list .req-row').length;
+      const badge=document.querySelector('#friends-btn span');
+      if(badge){ badge.style.display = n>0 ? 'block' : 'none'; }
+      const secLabel=[...document.querySelectorAll('.ff-section-label')].find(e=>e.textContent.includes('好友邀請'));
+      if(secLabel){ const s=secLabel.querySelector('span:last-child'); if(n>0){s.textContent=n+' 待接受';} else { secLabel.style.display='none'; document.getElementById('req-list').style.display='none'; } }
+    }
+    function sendByPid(){
+      const v=document.getElementById('pid-input').value.trim();
+      if(!v){ showToast('請先輸入 Player ID'); return; }
+      showToast('已送出邀請給 '+v.toUpperCase());
+      document.getElementById('pid-input').value='';
+      closeAddFriend();
+    }
+    function addRecent(btn){
+      const row=btn.closest('.req-row'); const name=row.dataset.name;
+      showConfirm({ danger:false, title:'加好友', text:'送出好友邀請給 '+name+'？', okLabel:'送出邀請',
+        onOk:()=>{ btn.textContent='已送出'; btn.disabled=true; btn.style.background='transparent'; btn.style.color='var(--tx-3)'; btn.style.borderColor='var(--line)'; btn.style.boxShadow='none'; btn.style.cursor='default'; showToast('已送出邀請給 '+name); } });
+    }
+    let _scanT=null;
+    function openScanner(){
+      const o=document.getElementById('scanner'); o.classList.remove('found'); o.classList.add('show');
+      clearTimeout(_scanT);
+      _scanT=setTimeout(()=>{ o.classList.add('found');
+        _scanT=setTimeout(()=>{ o.classList.remove('show','found'); closeAddFriend(); showToast('已送出邀請給 BladeStorm'); }, 950);
+      }, 1900);
+    }
+    function closeScanner(){ const o=document.getElementById('scanner'); o.classList.remove('show','found'); clearTimeout(_scanT); }
+    document.getElementById('close-share').addEventListener('click',()=>closeModal('share-overlay'));
+    document.getElementById('share-overlay').addEventListener('click',function(e){if(e.target===this)closeModal('share-overlay');});
+    document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeModal('edit-modal');});
+
+    // also wire edit-modal open via classList
+    const editObs=new MutationObserver(()=>{
+      const m=document.getElementById('edit-modal');
+      if(m.classList.contains('open')){m.style.opacity='1';m.style.pointerEvents='auto';document.getElementById('edit-sheet').style.transform='translateY(0)';}
+    });
+    editObs.observe(document.getElementById('edit-modal'),{attributes:true,attributeFilter:['class']});
+  </script>
+
+  <!-- QR scanner overlay -->
+  <div class="scanner-overlay" id="scanner">
+    <div class="scan-card">
+      <div class="scan-frame">
+        <span class="scan-corner tl"></span><span class="scan-corner tr"></span>
+        <span class="scan-corner bl"></span><span class="scan-corner br"></span>
+        <span class="scan-line"></span>
+      </div>
+      <div class="scan-hint">對準對方 QR Code · 掃描中…</div>
+      <div class="scan-found" id="scan-found">✓ 已找到 BladeStorm</div>
+    </div>
+    <button class="scan-cancel" onclick="closeScanner()">取消</button>
+  </div>
+
+  <!-- Gooey metaballs background -->
+  <script>
+  (function(){
+    const stage = document.getElementById('goo-stage'); if(!stage) return;
+    const W=()=>window.innerWidth, H=()=>window.innerHeight;
+    const COLORS=['#2A6FDB','#3278E2','#1FA6D6','#4FC3F7','#6E8BF5','#2A6FDB','#3aa0e6','#F15A22','#2A6FDB'];
+    const COUNT=COLORS.length, blobs=[];
+    class Blob{
+      constructor(i){ this.el=document.createElement('div'); this.el.className='blob';
+        this.el.style.background=COLORS[i%COLORS.length]; stage.appendChild(this.el); this.reset(); }
+      reset(){ this.r=70+Math.random()*120; this.x=Math.random()*W(); this.y=Math.random()*H();
+        this.speed=2.4+Math.random()*1.8; const a=Math.random()*Math.PI*2;
+        this.vx=Math.cos(a)*this.speed; this.vy=Math.sin(a)*this.speed;
+        this.pulsePhase=Math.random()*Math.PI*2; this.pulseSpeed=0.7+Math.random()*0.9; this.baseR=this.r;
+        this.wobPhase=Math.random()*Math.PI*2; this.wobSpeed=0.9+Math.random()*1.2; this.wobAmp=7+Math.random()*9;
+        this.flowPhase=Math.random()*Math.PI*2; this.flowSpeed=0.010+Math.random()*0.014;
+        this.moodPhase=Math.random()*Math.PI*2; this.moodSpeed=0.25+Math.random()*0.5; this.applySize(); }
+      applySize(){ this.el.style.width=this.r*2+'px'; this.el.style.height=this.r*2+'px'; }
+      update(t,bs){
+        this.flowPhase+=this.flowSpeed;
+        this.vx+=Math.cos(this.flowPhase)*0.24; this.vy+=Math.sin(this.flowPhase*1.3+0.7)*0.24;
+        const myMood=Math.sin(t*this.moodSpeed+this.moodPhase);
+        for(const o of bs){ if(o===this)continue;
+          const dx=o.x-this.x,dy=o.y-this.y,d=Math.hypot(dx,dy)||1,range=this.r+o.r+150;
+          if(d<range){ const oM=Math.sin(t*o.moodSpeed+o.moodPhase),mood=(myMood+oM)*0.5,f=(1-d/range)*mood*0.10;
+            this.vx+=dx/d*f; this.vy+=dy/d*f;
+            const near=(this.r+o.r)*0.55; if(d<near){ const push=(1-d/near)*0.30; this.vx-=dx/d*push; this.vy-=dy/d*push; } } }
+        this.vx*=0.97; this.vy*=0.97; const sp=Math.hypot(this.vx,this.vy)||1,MIN=0.7,MAX=4.0;
+        if(sp<MIN){const k=MIN/sp;this.vx*=k;this.vy*=k;} else if(sp>MAX){const k=MAX/sp;this.vx*=k;this.vy*=k;}
+        this.x+=this.vx; this.y+=this.vy;
+        if(this.x<-this.r*0.5||this.x>W()+this.r*0.5)this.vx*=-1;
+        if(this.y<-this.r*0.5||this.y>H()+this.r*0.5)this.vy*=-1;
+        const pulse=1+Math.sin(t*this.pulseSpeed+this.pulsePhase)*0.16; this.r=this.baseR*pulse; this.applySize();
+        const wx=Math.sin(t*this.wobSpeed+this.wobPhase)*this.wobAmp, wy=Math.cos(t*this.wobSpeed*0.85+this.wobPhase)*this.wobAmp;
+        this.el.style.transform='translate('+(this.x-this.r+wx)+'px,'+(this.y-this.r+wy)+'px)'; }
+    }
+    for(let i=0;i<COUNT;i++)blobs.push(new Blob(i));
+    const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let start=null;
+    function loop(ts){ if(start===null)start=ts; const t=(ts-start)/1000; for(const b of blobs)b.update(t,blobs); if(!reduce)requestAnimationFrame(loop); }
+    if(reduce){ for(const b of blobs)b.update(0,blobs); } else requestAnimationFrame(loop);
+    window.addEventListener('resize',()=>{ for(const b of blobs){ b.x=Math.min(b.x,W()); b.y=Math.min(b.y,H()); } });
+  })();
+  </script>
+</body>
+</html>

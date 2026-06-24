@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AMPHICLASH — Grid Hub</title>
+  <link rel="stylesheet" href="_styles.css?v=2">
+  <style>
+    /* ═══ SKIN: AQUA — saturated blue glass (skylrk replica) ═══ */
+    .skin-aqua {
+      --bg:       transparent;
+      --bg-2:     rgba(251,251,251,0.16);
+      --glass-bg: rgba(251,251,251,0.15);
+      --glass-bd: rgba(251,251,251,0.55);
+      --glass-hi: rgba(251,251,251,0.75);
+      --tx:       #ffffff;
+      --tx-2:     rgba(255,255,255,0.74);
+      --tx-3:     rgba(255,255,255,0.55);
+      --line:     rgba(255,255,255,0.22);
+      --halftone: rgba(255,255,255,0.30);
+      --ph-base:  rgba(255,255,255,0.12);
+    }
+    body.aqua-bg {
+      background:
+        radial-gradient(135% 110% at 82% 72%, rgba(247,251,255,0.95) 0%, rgba(186,217,244,0.55) 26%, transparent 52%),
+        radial-gradient(130% 120% at 8% 96%, #0b1b2c 0%, rgba(11,27,44,0.55) 30%, transparent 62%),
+        linear-gradient(158deg, #a8d5f7 0%, #5d9bca 44%, #29527f 100%) !important;
+      background-attachment: fixed !important;
+    }
+    /* drifting studio light */
+    body.aqua-bg::after {
+      content: '';
+      position: fixed;
+      z-index: 0; pointer-events: none;
+      width: 85vh; height: 85vh;
+      top: 50%; left: 50%;
+      border-radius: 50%;
+      filter: blur(55px);
+      background: radial-gradient(circle, rgba(250,253,255,0.78), rgba(196,224,248,0.28) 46%, transparent 70%);
+      animation: lightDrift 9s ease-in-out infinite;
+    }
+    @keyframes lightDrift {
+      0%   { transform: translate(-90%,-90%) scale(1);    opacity: 0.85; }
+      25%  { transform: translate(10%,-55%)  scale(1.35); opacity: 1; }
+      50%  { transform: translate(-30%,10%)  scale(0.95); opacity: 0.7; }
+      75%  { transform: translate(-95%,-20%) scale(1.3);  opacity: 1; }
+      100% { transform: translate(-90%,-90%) scale(1);    opacity: 0.85; }
+    }
+    /* second drifting light */
+    .app-shell::before {
+      content: '';
+      position: fixed;
+      z-index: 0; pointer-events: none;
+      width: 70vh; height: 70vh;
+      top: 50%; left: 50%;
+      border-radius: 50%;
+      filter: blur(60px);
+      background: radial-gradient(circle, rgba(255,255,255,0.55), rgba(120,180,230,0.22) 50%, transparent 72%);
+      animation: lightDrift2 11s ease-in-out infinite;
+    }
+    @keyframes lightDrift2 {
+      0%   { transform: translate(20%,20%)   scale(1.1); opacity: 0.6; }
+      33%  { transform: translate(-70%,40%)  scale(0.9); opacity: 0.9; }
+      66%  { transform: translate(30%,-40%)  scale(1.4); opacity: 0.8; }
+      100% { transform: translate(20%,20%)   scale(1.1); opacity: 0.6; }
+    }
+    /* fine grain overlay */
+    body.aqua-bg::before {
+      content: '';
+      position: fixed; inset: 0;
+      z-index: 1; pointer-events: none;
+      opacity: 0.45;
+      background-image: url("assets/grain.png");
+      background-size: 48px 48px;
+      background-repeat: repeat;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      body.aqua-bg { animation: none; }
+    }
+    /* crystal glass — exact skylrk info-card values */
+    .skin-aqua .glass,
+    .skin-aqua .fan-card {
+      -webkit-backdrop-filter: blur(3px);
+      backdrop-filter: blur(3px);
+      background: rgba(255,255,255,0.14) !important;
+      border: 1px solid transparent;
+      box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.62),
+        inset 0 0 9px rgba(255,255,255,0.36),
+        0 1px 2px rgba(40,52,66,0.32);
+    }
+    /* uniform transparency — no specular white gradient */
+    .skin-aqua .fan-card { position: relative; overflow: hidden; }
+    .skin-aqua .fan-card::after { display: none !important; }
+    /* ── thin silver metallic edge on cards ── */
+    .skin-aqua .fan-card,
+    .skin-aqua .glass { border-color: transparent !important; }
+    .skin-aqua .fan-card::before,
+    .skin-aqua .glass::before {
+      content: '';
+      display: block;
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg,
+        rgba(255,255,255,0.99) 0%,
+        rgba(150,164,178,0.55) 18%,
+        rgba(255,255,255,0.93) 38%,
+        rgba(126,142,158,0.50) 56%,
+        rgba(252,255,255,0.97) 74%,
+        rgba(148,164,178,0.56) 100%);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+              mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+              mask-composite: exclude;
+      pointer-events: none;
+      z-index: 3;
+    }
+    .skin-aqua .fan-card > * { position: relative; z-index: 2; }
+    /* whiten dark inline icons */
+    .skin-aqua .fan-card__icon { filter: brightness(0) invert(1); opacity: 0.62; }
+    /* pill nav header */
+    .skin-aqua .app-header {
+      background: transparent;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      border: 0;
+    }
+    .skin-aqua .header-icon {
+      background: rgba(251,251,251,0.14);
+      border-color: rgba(251,251,251,0.50);
+      box-shadow: inset 0 1px 0 rgba(251,251,251,0.55);
+    }
+    .skin-aqua .banner-toggle-btn.active { background: rgba(251,251,251,0.92); color: #2d5a8c; }
+
+    /* ── match other frames to crystal cards ── */
+    .skin-aqua .header-icon,
+    .skin-aqua .banner-toggle {
+      position: relative;
+      background: rgba(251,251,251,0.04);
+      border-color: transparent !important;
+      -webkit-backdrop-filter: blur(2px);
+      backdrop-filter: blur(2px);
+      box-shadow: inset 0 1px 0 rgba(251,251,251,0.70);
+    }
+    .skin-aqua .header-icon::before,
+    .skin-aqua .banner-toggle::before {
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg,
+        rgba(255,255,255,0.99) 0%,
+        rgba(150,164,178,0.55) 18%,
+        rgba(255,255,255,0.93) 38%,
+        rgba(126,142,158,0.50) 56%,
+        rgba(252,255,255,0.97) 74%,
+        rgba(148,164,178,0.56) 100%);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+              mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+              mask-composite: exclude;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    /* ── BATTLE → white button (skylrk btn-add-cart) ── */
+    .skin-aqua .battle-pill {
+      background: rgba(251,251,251,0.92) !important;
+      border: 1px solid rgba(255,255,255,0.85) !important;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.95),
+        0 10px 26px rgba(8,26,46,0.18) !important;
+    }
+    .skin-aqua .battle-pill:hover {
+      background: rgba(255,255,255,1) !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.95), 0 14px 32px rgba(8,26,46,0.24) !important;
+    }
+    .skin-aqua .battle-orb {
+      background: rgba(45,90,140,0.08) !important;
+      border-color: rgba(45,90,140,0.50) !important;
+      box-shadow: 0 0 0 6px rgba(45,90,140,0.05), 0 0 16px rgba(45,90,140,0.14) !important;
+    }
+    .skin-aqua .battle-orb::after { border-color: rgba(45,90,140,0.28) !important; }
+    .skin-aqua .battle-orb svg [stroke] { stroke: #2d5a8c !important; }
+    .skin-aqua .battle-orb svg [fill]   { fill: #2d5a8c !important; }
+    .skin-aqua .battle-jp    { color: rgba(45,90,140,0.55) !important; }
+    .skin-aqua .battle-title { color: #244e78 !important; }
+    .skin-aqua .battle-sub   { color: rgba(45,90,140,0.58) !important; }
+    .skin-aqua .live-label   { color: #2d5a8c !important; }
+    .skin-aqua .live-dot-big {
+      background: #2d5a8c !important;
+      box-shadow: 0 0 8px rgba(45,90,140,0.5) !important;
+      animation: pulse 2.6s ease-in-out infinite !important;
+    }
+    /* B — glossy sweep across button */
+    .skin-aqua .battle-pill { position: relative; overflow: hidden; }
+    .skin-aqua .battle-pill > * { position: relative; z-index: 2; }
+    .skin-aqua .battle-pill::before {
+      content: '';
+      position: absolute; top: -20%; bottom: -20%;
+      left: -60%; width: 45%;
+      background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.9) 50%, transparent 100%);
+      transform: skewX(-18deg);
+      z-index: 1; pointer-events: none;
+      animation: btnSweep 4.8s ease-in-out infinite;
+    }
+    @keyframes btnSweep {
+      0%       { left: -60%; }
+      45%,100% { left: 130%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .skin-aqua .battle-pill::before { animation: none !important; }
+    }
+
+    body { align-items: stretch; }
+    .app-shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Layout ── */
+    .hub-layout {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* ── Section label ── */
+    .section-label {
+      font-family: var(--f-mono);
+      font-size: 9.5px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--tx-3);
+      padding: 14px 20px 0;
+    }
+
+    /* ── Card scroll area ── */
+    .cards-section {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      flex: 1;
+      padding: 4px 0;
+    }
+
+    .cards-scroll {
+      display: flex;
+      overflow-x: scroll;
+      overflow-y: visible;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      padding: 30px calc(50% - 76px) 28px;
+      scroll-padding-inline: calc(50% - 76px);
+      align-items: center;
+      gap: 10px;
+      touch-action: pan-x;
+    }
+    .cards-scroll::-webkit-scrollbar { display: none; }
+
+    /* ── Fan card ── */
+    .fan-card {
+      flex-shrink: 0;
+      width: 152px;
+      height: 232px;
+      border-radius: 22px;
+      padding: 18px 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      scroll-snap-align: center;
+      cursor: pointer;
+      text-decoration: none;
+      color: var(--tx);
+      -webkit-backdrop-filter: blur(30px) saturate(220%);
+      backdrop-filter: blur(30px) saturate(220%);
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-bd);
+      box-shadow: inset 0 1px 0 var(--glass-hi);
+      will-change: transform;
+    }
+
+    .fan-card__icon {
+      width: 40px; height: 40px;
+      opacity: 0.70;
+    }
+    .fan-card__label {
+      font-family: var(--f-jp);
+      font-size: 9px;
+      color: var(--tx-3);
+      letter-spacing: 0.08em;
+      margin-bottom: 3px;
+    }
+    .fan-card__title {
+      font-family: var(--f-display);
+      font-weight: 900;
+      font-size: 21px;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      color: var(--tx);
+    }
+    .fan-card__sub {
+      font-family: var(--f-ui);
+      font-size: 11px;
+      color: var(--tx-3);
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+
+
+
+    /* ── Banner strip ── */
+    .banner-wrap {
+      padding: 0 16px;
+      margin: 12px 0 10px;
+      position: relative;
+      z-index: 4;
+    }
+    .banner-strip {
+      border-radius: 14px;
+      background: transparent;
+      overflow: hidden;
+      position: relative;
+    }
+    /* fade edges */
+    .banner-strip::before, .banner-strip::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 28px;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .banner-strip::before {
+      left: 0;
+      background: linear-gradient(to right, var(--bg) 20%, transparent);
+    }
+    .banner-strip::after {
+      right: 0;
+      background: linear-gradient(to left, var(--bg) 20%, transparent);
+    }
+
+    /* mode toggle row */
+    .banner-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 12px 0;
+      position: relative;
+      z-index: 3;
+    }
+    .banner-type-label {
+      font-family: var(--f-mono);
+      font-size: 8.5px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--tx-3);
+    }
+    .banner-toggle {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .banner-toggle-btn {
+      font-family: var(--f-mono);
+      font-size: 8px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border: none;
+      background: transparent;
+      color: var(--tx-3);
+      cursor: pointer;
+    }
+    .banner-toggle-btn.active {
+      background: var(--tx);
+      color: var(--bg);
+    }
+
+    /* ── Text marquee ── */
+    .banner-text {
+      padding: 10px 0 10px;
+      overflow: hidden;
+      width: 100%;
+    }
+    .banner-text-inner {
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+      will-change: transform;
+      animation: marquee-scroll 22s linear infinite;
+    }
+    .banner-text-inner:hover { animation-play-state: paused; }
+    @keyframes marquee-scroll {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    .banner-text-item {
+      font-family: var(--f-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--tx-2);
+      padding: 0 6px;
+    }
+    .banner-sep {
+      font-size: 9px;
+      color: var(--tx-3);
+      padding: 0 2px;
+    }
+
+    /* ── Image strip ── */
+    .banner-images {
+      display: none;
+      padding: 8px 0 10px;
+      overflow: hidden;
+      width: 100%;
+    }
+    .banner-images-inner {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      will-change: transform;
+      animation: marquee-scroll 20s linear infinite;
+    }
+    .banner-images-inner:hover { animation-play-state: paused; }
+    .banner-img-item {
+      width: 72px;
+      height: 40px;
+      border-radius: 8px;
+      background: var(--ph-base);
+      border: 1px solid var(--line);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--f-mono);
+      font-size: 7px;
+      color: var(--tx-3);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      overflow: hidden;
+    }
+    .battle-zone {
+      padding: 0 16px 36px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .battle-pill {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 20px 10px 10px;
+      border-radius: 100px;
+      border: 1px solid rgba(57,255,20,0.42);
+      background: rgba(57,255,20,0.07);
+      box-shadow:
+        0 0 0 1px rgba(57,255,20,0.12),
+        0 4px 30px rgba(57,255,20,0.18),
+        inset 0 1px 0 rgba(255,255,255,0.85);
+      -webkit-backdrop-filter: blur(30px) saturate(180%);
+      backdrop-filter: blur(30px) saturate(180%);
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      transition: box-shadow .2s ease, background .2s ease;
+    }
+    .battle-pill:hover {
+      background: rgba(57,255,20,0.11);
+      box-shadow: 0 0 0 1px rgba(57,255,20,0.18), 0 8px 40px rgba(57,255,20,0.28), inset 0 1px 0 rgba(255,255,255,0.85);
+    }
+
+    /* Big circle */
+    .battle-orb {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: rgba(57,255,20,0.15);
+      border: 2px solid rgba(57,255,20,0.65);
+      box-shadow:
+        0 0 0 6px rgba(57,255,20,0.06),
+        0 0 24px rgba(57,255,20,0.40);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .battle-orb svg { opacity: 0.80; }
+
+    /* pulse ring */
+    .battle-orb::after {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(57,255,20,0.30);
+      animation: orb-pulse 2s ease-in-out infinite;
+    }
+    @keyframes orb-pulse {
+      0%,100% { transform: scale(1);   opacity: 0.70; }
+      50%      { transform: scale(1.08); opacity: 0.25; }
+    }
+    @media (prefers-reduced-motion: reduce) { .battle-orb::after { animation: none; } }
+
+    .battle-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .battle-jp {
+      font-family: var(--f-jp);
+      font-size: 9px;
+      color: rgba(12,43,14,0.50);
+      letter-spacing: 0.08em;
+      margin-bottom: 3px;
+    }
+    .battle-title {
+      font-family: var(--f-display);
+      font-weight: 900;
+      font-size: 26px;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      color: #0a2408;
+    }
+    .battle-sub {
+      font-family: var(--f-mono);
+      font-size: 9.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(12,43,14,0.48);
+      margin-top: 5px;
+    }
+
+    .battle-live {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+    .live-dot-big {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: var(--neon);
+      box-shadow: 0 0 8px var(--neon);
+      animation: pulse 1.1s ease-in-out infinite;
+    }
+    .live-label {
+      font-family: var(--f-mono);
+      font-size: 8px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--neon-dim);
+      font-weight: 700;
+    }
+    /* ═══ LIQUID WEBGL BACKGROUND (adapted from CodePen smpnjn/pobGMKp) ═══ */
+    .goo-stage { position: fixed; inset: 0; z-index: 0; filter: url(#goo); pointer-events: none; }
+    .goo-defs  { position: absolute; width: 0; height: 0; }
+    .blob      { position: absolute; border-radius: 50%; will-change: transform; }
+    body.aqua-bg { background: #e9f1fc !important; }
+    body.aqua-bg::after,
+    .app-shell::before { display: none !important; }
+  </style>
+</head>
+<body class="aqua-bg">
+  <div class="goo-stage" id="goo-stage"></div>
+  <svg class="goo-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <filter id="goo">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="22" result="blur"/>
+        <feColorMatrix in="blur" mode="matrix"
+          values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8" result="goo"/>
+        <feGaussianBlur in="goo" stdDeviation="10"/>
+      </filter>
+    </defs>
+  </svg>
+  <div class="app-shell skin-aqua">
+
+    <!-- Header -->
+    <header class="app-header">
+      <a class="logo" href="Landing Page.html">AMPHICLASH</a>
+      <div class="header-icons">
+        <a class="header-icon" href="Notifications.html" title="通知" style="position:relative;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 1.5a5 5 0 0 1 5 5v2.5l1 2H2l1-2V6.5a5 5 0 0 1 5-5z" stroke="currentColor" stroke-width="1.2" fill="none"/>
+            <path d="M6.5 13a1.5 1.5 0 0 0 3 0" stroke="currentColor" stroke-width="1.2" fill="none"/>
+          </svg>
+          <span style="position:absolute;top:1px;right:3px;width:7px;height:7px;border-radius:50%;background:hsl(8 90% 52%);z-index:5;"></span>
+        </a>
+        <a class="header-icon" href="Profile.html" title="個人">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+        </a>
+      </div>
+    </header>
+
+    <div class="hub-layout">
+
+      <!-- Scrollable fan cards -->
+      <div class="cards-section">
+        <div class="cards-scroll">
+
+          <!-- MAP — left -->
+          <a class="fan-card" href="Battle Spot.html">
+            <div class="fan-card__icon">
+              <svg viewBox="0 0 40 40" fill="none">
+                <circle cx="20" cy="16" r="9"  stroke="rgba(26,26,26,0.20)" stroke-width="1"/>
+                <circle cx="20" cy="16" r="3.5" stroke="rgba(26,26,26,0.55)" stroke-width="1.4"/>
+                <path d="M20 25c0 0-9 6-9 10" stroke="rgba(26,26,26,0.18)" stroke-width="1" stroke-linecap="round"/>
+                <path d="M20 25c0 0 9 6 9 10" stroke="rgba(26,26,26,0.18)" stroke-width="1" stroke-linecap="round"/>
+                <circle cx="20" cy="16" r="1.5" fill="rgba(26,26,26,0.60)"/>
+              </svg>
+            </div>
+            <div>
+              <div class="fan-card__label">マップ</div>
+              <div class="fan-card__title">MAP</div>
+              <div class="fan-card__sub">Battle Spot<br>聚會地點</div>
+            </div>
+          </a>
+
+          <!-- CLASH HUB — center featured -->
+          <a class="fan-card" href="Clash Hub.html">
+            <div class="fan-card__icon">
+              <svg viewBox="0 0 40 40" fill="none">
+                <circle cx="20" cy="20" r="16" stroke="rgba(26,26,26,0.20)" stroke-width="1"/>
+                <path d="M12 20h4l3-7 4 14 3-10 2 3h4" stroke="rgba(26,26,26,0.65)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div>
+              <div class="fan-card__label">クラッシュ</div>
+              <div class="fan-card__title">CLASH<br>HUB</div>
+              <div class="fan-card__sub">社群動態<br>即時戰報</div>
+            </div>
+          </a>
+
+          <!-- RANKING — right -->
+          <a class="fan-card" href="Ranking.html">
+            <div class="fan-card__icon">
+              <svg viewBox="0 0 40 40" fill="none">
+                <rect x="4"  y="24" width="8"  height="12" rx="1" fill="rgba(26,26,26,0.14)" stroke="rgba(26,26,26,0.28)" stroke-width="1"/>
+                <rect x="16" y="16" width="8"  height="20" rx="1" fill="rgba(26,26,26,0.20)" stroke="rgba(26,26,26,0.38)" stroke-width="1"/>
+                <rect x="28" y="8"  width="8"  height="28" rx="1" fill="rgba(26,26,26,0.28)" stroke="rgba(26,26,26,0.50)" stroke-width="1"/>
+              </svg>
+            </div>
+            <div>
+              <div class="fan-card__label">ランキング</div>
+              <div class="fan-card__title">RANK&shy;ING</div>
+              <div class="fan-card__sub">月排行<br>月賽資格</div>
+            </div>
+          </a>
+
+        </div>
+      </div>
+
+      <!-- Banner strip -->
+      <div class="banner-wrap">
+        <div class="banner-strip">
+
+          <!-- Text marquee -->
+          <div class="banner-text" id="banner-text">
+            <div class="banner-text-inner">
+              <span class="banner-text-item">月賽開跑 · TAIPEI 台北賽區</span>
+              <span class="banner-sep">✦</span>
+              <span class="banner-text-item">本週對戰 248 場</span>
+              <span class="banner-sep">✦</span>
+              <span class="banner-text-item">新玩家 StormDragon 晉升 PRIMUS</span>
+              <span class="banner-sep">✦</span>
+              <span class="banner-text-item">7/1 月賽 · 台北資格賽開放報名</span>
+              <span class="banner-sep">✦</span>
+              <!-- duplicate for seamless loop -->
+              <span class="banner-text-item">月賽開跑 · TAIPEI 台北賽區</span>
+              <span class="banner-sep">✦</span>
+              <span class="banner-text-item">本週對戰 248 場</span>
+              <span class="banner-sep">✦</span>
+              <span class="banner-text-item">新玩家 StormDragon 晉升 PRIMUS</span>
+              <span class="banner-sep">✦</span>
+              <span class="banner-text-item">7/1 月賽 · 台北資格賽開放報名</span>
+              <span class="banner-sep">✦</span>
+            </div>
+          </div>
+
+          <!-- Image strip -->
+          <div class="banner-images" id="banner-img">
+            <div class="banner-images-inner">
+              <div class="banner-img-item" style="background:hsl(220 60% 90%);">EVENT 01</div>
+              <div class="banner-img-item" style="background:hsl(8 80% 88%);">月賽</div>
+              <div class="banner-img-item" style="background:hsl(280 50% 88%);">SPOT</div>
+              <div class="banner-img-item" style="background:hsl(200 70% 88%);">NEWS</div>
+              <div class="banner-img-item" style="background:hsl(25 80% 88%);">EVENT 05</div>
+              <!-- duplicate -->
+              <div class="banner-img-item" style="background:hsl(220 60% 90%);">EVENT 01</div>
+              <div class="banner-img-item" style="background:hsl(8 80% 88%);">月賽</div>
+              <div class="banner-img-item" style="background:hsl(280 50% 88%);">SPOT</div>
+              <div class="banner-img-item" style="background:hsl(200 70% 88%);">NEWS</div>
+              <div class="banner-img-item" style="background:hsl(25 80% 88%);">EVENT 05</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BATTLE zone -->
+      <div class="battle-zone">
+        <a class="battle-pill" href="Battle Idle.html">
+
+          <!-- Orb -->
+          <div class="battle-orb">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <circle cx="14" cy="14" r="11" stroke="rgba(57,255,20,0.80)" stroke-width="1.5"/>
+              <circle cx="14" cy="14" r="6"  stroke="rgba(57,255,20,0.55)" stroke-width="1.2"/>
+              <circle cx="14" cy="14" r="2.5" fill="rgba(57,255,20,0.90)"/>
+              <path d="M6 14h3M19 14h3M14 6v3M14 19v3" stroke="rgba(57,255,20,0.55)" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <!-- Info -->
+          <div class="battle-info">
+            <div class="battle-jp">バトル</div>
+            <div class="battle-title">BATTLE</div>
+            <div class="battle-sub">RANKED · 對戰系統</div>
+          </div>
+
+          <!-- Live indicator removed -->
+
+        </a>
+      </div>
+
+      <!-- tech-row -->
+      <div class="tech-row" style="padding:4px 20px 10px; position:relative; z-index:5;">
+        <span class="jp" style="font-size:10px; letter-spacing:0.06em;">アンフィクラッシュ</span>
+        <span>HUB_#0001</span>
+      </div>
+
+    </div>
+
+    <!-- Crosshairs removed -->
+
+  </div>
+
+  <script>
+    function setBanner(mode) {
+      document.getElementById('banner-text').style.display = mode === 'text' ? 'block' : 'none';
+      document.getElementById('banner-img').style.display  = mode === 'img'  ? 'block' : 'none';
+    }
+
+    /* ── Dynamic arc carousel ── */
+    function updateArc() {
+      const scroll = document.querySelector('.cards-scroll');
+      const cards  = [...scroll.querySelectorAll('.fan-card')];
+      const cx     = scroll.scrollLeft + scroll.offsetWidth / 2;
+
+      cards.forEach(card => {
+        const cardCx  = card.offsetLeft + card.offsetWidth / 2;
+        const offset  = (cardCx - cx) / (scroll.offsetWidth * 0.55);
+        const clamped = Math.max(-1, Math.min(1, offset));
+        const rot     =  0;
+        const dy      =  0;
+        const sc      =  1.20 - Math.abs(clamped) * 0.22;
+        card.style.transform = `rotate(${rot}deg) translateY(${dy}px) scale(${sc})`;
+        card.style.zIndex    = Math.abs(clamped) < 0.15 ? 3 : 1;
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const scroll = document.querySelector('.cards-scroll');
+      /* Center on CLASH HUB (2nd card) on load */
+      const cards = [...scroll.querySelectorAll('.fan-card')];
+      if (cards[1]) {
+        scroll.scrollLeft = cards[1].offsetLeft - (scroll.offsetWidth - cards[1].offsetWidth) / 2;
+      }
+      updateArc();
+      scroll.addEventListener('scroll', updateArc, { passive: true });
+    });
+  </script>
+  <script>
+  /* Gooey Metaballs — colored blobs merged via SVG goo filter (AMPHICLASH blue) */
+  (function(){
+    const stage = document.getElementById('goo-stage'); if(!stage) return;
+    const W=()=>window.innerWidth, H=()=>window.innerHeight;
+    const COLORS=['#2A6FDB','#3278E2','#1FA6D6','#4FC3F7','#6E8BF5','#2A6FDB','#3aa0e6','#F15A22','#2A6FDB'];
+    const COUNT=COLORS.length, blobs=[];
+    class Blob{
+      constructor(i){ this.el=document.createElement('div'); this.el.className='blob';
+        this.el.style.background=COLORS[i%COLORS.length]; stage.appendChild(this.el); this.reset(); }
+      reset(){ this.r=70+Math.random()*120; this.x=Math.random()*W(); this.y=Math.random()*H();
+        this.speed=2.4+Math.random()*1.8; const a=Math.random()*Math.PI*2;
+        this.vx=Math.cos(a)*this.speed; this.vy=Math.sin(a)*this.speed;
+        this.pulsePhase=Math.random()*Math.PI*2; this.pulseSpeed=0.7+Math.random()*0.9; this.baseR=this.r;
+        this.wobPhase=Math.random()*Math.PI*2; this.wobSpeed=0.9+Math.random()*1.2; this.wobAmp=7+Math.random()*9;
+        this.flowPhase=Math.random()*Math.PI*2; this.flowSpeed=0.010+Math.random()*0.014;
+        this.moodPhase=Math.random()*Math.PI*2; this.moodSpeed=0.25+Math.random()*0.5; this.applySize(); }
+      applySize(){ this.el.style.width=this.r*2+'px'; this.el.style.height=this.r*2+'px'; }
+      update(t,bs){
+        this.flowPhase+=this.flowSpeed;
+        this.vx+=Math.cos(this.flowPhase)*0.24; this.vy+=Math.sin(this.flowPhase*1.3+0.7)*0.24;
+        const myMood=Math.sin(t*this.moodSpeed+this.moodPhase);
+        for(const o of bs){ if(o===this)continue;
+          const dx=o.x-this.x,dy=o.y-this.y,d=Math.hypot(dx,dy)||1,range=this.r+o.r+150;
+          if(d<range){ const oM=Math.sin(t*o.moodSpeed+o.moodPhase),mood=(myMood+oM)*0.5,f=(1-d/range)*mood*0.10;
+            this.vx+=dx/d*f; this.vy+=dy/d*f;
+            const near=(this.r+o.r)*0.55; if(d<near){ const push=(1-d/near)*0.30; this.vx-=dx/d*push; this.vy-=dy/d*push; } } }
+        this.vx*=0.97; this.vy*=0.97; const sp=Math.hypot(this.vx,this.vy)||1,MIN=0.7,MAX=4.0;
+        if(sp<MIN){const k=MIN/sp;this.vx*=k;this.vy*=k;} else if(sp>MAX){const k=MAX/sp;this.vx*=k;this.vy*=k;}
+        this.x+=this.vx; this.y+=this.vy;
+        if(this.x<-this.r*0.5||this.x>W()+this.r*0.5)this.vx*=-1;
+        if(this.y<-this.r*0.5||this.y>H()+this.r*0.5)this.vy*=-1;
+        const pulse=1+Math.sin(t*this.pulseSpeed+this.pulsePhase)*0.16; this.r=this.baseR*pulse; this.applySize();
+        const wx=Math.sin(t*this.wobSpeed+this.wobPhase)*this.wobAmp, wy=Math.cos(t*this.wobSpeed*0.85+this.wobPhase)*this.wobAmp;
+        this.el.style.transform='translate('+(this.x-this.r+wx)+'px,'+(this.y-this.r+wy)+'px)'; }
+    }
+    for(let i=0;i<COUNT;i++)blobs.push(new Blob(i));
+    const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let start=null;
+    function loop(ts){ if(start===null)start=ts; const t=(ts-start)/1000; for(const b of blobs)b.update(t,blobs); if(!reduce)requestAnimationFrame(loop); }
+    if(reduce){ for(const b of blobs)b.update(0,blobs); } else requestAnimationFrame(loop);
+    window.addEventListener('resize',()=>{ for(const b of blobs){ b.x=Math.min(b.x,W()); b.y=Math.min(b.y,H()); } });
+    function attract(px,py){ let n=null,nd=Infinity; for(const b of blobs){ const d=(b.x-px)**2+(b.y-py)**2; if(d<nd){nd=d;n=b;} }
+      if(n){ n.vx+=(px-n.x)*0.0008; n.vy+=(py-n.y)*0.0008; const m=2.2; n.vx=Math.max(-m,Math.min(m,n.vx)); n.vy=Math.max(-m,Math.min(m,n.vy)); } }
+    window.addEventListener('mousemove',e=>attract(e.clientX,e.clientY),{passive:true});
+    window.addEventListener('touchmove',e=>{const t=e.touches[0];if(t)attract(t.clientX,t.clientY);},{passive:true});
+  })();
+  </script>
+  <script>
+    (function(){})();
+  </script>
+  <script>
+    (function () {
+      function init() {
+        const overlay = document.querySelector('body > div[style*="backdrop-filter"]');
+        if (overlay) overlay.style.display = 'none';
+        const circleCv = document.getElementById('particle-canvas');
+        if (circleCv) circleCv.style.display = 'none';
+      }
+      document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
+    })();
+  </script>
+  <script>
+    (function () {
+      function init_disabled() {
+        const circleCv = document.getElementById('particle-canvas');
+        if (circleCv) circleCv.style.display = 'none';
+
+        const canvas = document.createElement('canvas');
+        Object.assign(canvas.style, {
+          position: 'fixed', top: '0', left: '0',
+          width: '100%', height: '100%',
+          zIndex: '3', pointerEvents: 'none', display: 'block',
+          filter: 'blur(2px)'
+        });
+        document.body.insertBefore(canvas, document.querySelector('.app-shell'));
+
+        const ctx = canvas.getContext('2d');
+        let W, H;
+        function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+        resize();
+        window.addEventListener('resize', resize);
+
+        const PAL = [
+          [255,255,255],[224,240,255],[200,228,252],
+          [240,248,255],[210,234,255],[188,220,248],
+        ];
+        const N = 60;
+        const sq = [];
+
+        function mk() {
+          const c = PAL[Math.floor(Math.random() * PAL.length)];
+          const sz = Math.random() * 18 + 11;
+          return {
+            x: Math.random() * W, y: Math.random() * H, sz,
+            rot: Math.random() * Math.PI * 2,
+            drot: (Math.random() - 0.5) * 0.014,
+            dy: -(Math.random() * 0.32 + 0.06),
+            phase: Math.random() * Math.PI * 2,
+            freq: Math.random() * 0.022 + 0.018,
+            amp: Math.random() * 2.0 + 1.0,
+            c, life: Math.random() * 400 + 200, age: Math.random() * 400,
+          };
+        }
+        for (let i = 0; i < N; i++) sq.push(mk());
+
+        let press = { active:false, x:W/2, y:H/2, burst:[] };
+        function onDown(e) { const t=e.touches?e.touches[0]:e; press.active=true; press.x=t.clientX; press.y=t.clientY; }
+        function onMove(e) { if(!press.active)return; const t=e.touches?e.touches[0]:e; press.x=t.clientX; press.y=t.clientY; }
+        function onUp()    { if(!press.active)return; press.active=false; press.burst=[press.x,press.y]; setTimeout(()=>{press.burst=[];},80); }
+        document.addEventListener('pointerdown',   onDown, {passive:true});
+        document.addEventListener('pointermove',   onMove, {passive:true});
+        document.addEventListener('pointerup',     onUp);
+        document.addEventListener('pointercancel', onUp);
+
+        function frame() {
+          ctx.clearRect(0, 0, W, H);
+          for (let i = 0; i < sq.length; i++) {
+            const p = sq[i];
+            p.age++;
+            if (p.age > p.life) { sq[i] = mk(); continue; }
+            p.x += Math.sin(p.age * p.freq + p.phase) * p.amp;
+            p.y += p.dy;
+            p.rot += p.drot + (press.active ? 0.08 : 0);
+            if (p.y < -20) p.y = H + 20;
+            if (press.active) {
+              const ex=press.x-p.x, ey=press.y-p.y, d=Math.sqrt(ex*ex+ey*ey)+1;
+              p.x += (ex/d)*Math.min(280/d,5.0)+(-ey/d)*Math.min(440/d,9.0);
+              p.y += (ey/d)*Math.min(280/d,5.0)+(ex/d)*Math.min(440/d,9.0);
+            }
+            if (press.burst.length) {
+              const ex=p.x-press.burst[0],ey=p.y-press.burst[1],d=Math.sqrt(ex*ex+ey*ey)+1;
+              p.x+=(ex/d)*Math.min(400/d,11.0); p.y+=(ey/d)*Math.min(400/d,11.0);
+            }
+            const t=p.age/p.life;
+            const env=t<0.15?t/0.15:t>0.82?(1-t)/0.18:1;
+            const a=0.34*env;
+            const hs=p.sz/2;
+            ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+            ctx.fillStyle=`rgba(${p.c[0]},${p.c[1]},${p.c[2]},${a.toFixed(3)})`;
+            ctx.fillRect(-hs,-hs,p.sz,p.sz);
+            ctx.restore();
+          }
+          requestAnimationFrame(frame);
+        }
+        frame();
+      }
+      document.readyState==='loading'?document.addEventListener('DOMContentLoaded',function(){}):void 0;
+    })();
+  </script>
+</body>
+</html>

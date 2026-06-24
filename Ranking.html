@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AMPHICLASH — Ranking</title>
+  <link rel="stylesheet" href="_styles.css?v=2">
+  <style>
+    body { align-items: stretch; background: #ffffff; }
+    /* center the header title */
+    .app-header .logo {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      pointer-events: none;
+    }
+    .app-shell {
+      height: 100dvh; max-height: 100dvh;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    /* ── Pager track ── */
+    .pager-track {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 44px;
+      display: flex;
+      overflow-x: scroll;
+      overflow-y: hidden;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .pager-track::-webkit-scrollbar { display: none; }
+
+    .pager-panel {
+      flex-shrink: 0;
+      width: 100%; min-width: 100%; height: 100%;
+      scroll-snap-align: start;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Pager content area ── */
+    .panel-content {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 13px 16px 15px;
+      gap: 10px;
+    }
+
+    /* tighter neumorphic shadow so it fully shows inside the tight pager (no clipping) */
+    .skin-aqua .glass {
+      box-shadow:
+        3px 4px 13px rgba(20,32,46,0.08),
+        -3px -3px 9px rgba(255,255,255,0.72),
+        inset 0 1px 0 rgba(255,255,255,0.95) !important;
+    }
+
+    /* ── Region tabs ── */
+    .region-tabs {
+      display: flex; gap: 6px;
+      overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
+      padding: 9px 3px; margin: -7px -3px -3px;
+    }
+    .region-tabs::-webkit-scrollbar { display: none; }
+    .region-tab {
+      flex-shrink: 0;
+      font-family: var(--f-mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 6px 13px; border-radius: 20px;
+      border: none; background: rgba(255,255,255,0.5);
+      box-shadow: 3px 4px 9px rgba(20,32,46,0.07), -3px -3px 7px rgba(255,255,255,0.85), inset 0 1px 0 rgba(255,255,255,0.9);
+      color: var(--tx-3); cursor: pointer; transition: all .15s;
+    }
+    .region-tab--active {
+      background: var(--tx); color: #fff;
+      box-shadow: inset 2px 3px 7px rgba(0,0,0,0.28), inset -1px -1px 3px rgba(255,255,255,0.12);
+    }
+
+    /* ── Tournament banner ── */
+    .tournament-banner {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 14px; border-radius: 12px;
+      border: 1px solid transparent;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+      text-decoration: none; flex-shrink: 0; position: relative; overflow: hidden;
+    }
+    .tournament-banner::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      background: var(--neon);
+    }
+    .tournament-banner__title {
+      font-family: var(--f-display); font-weight: 900;
+      font-size: 13px; letter-spacing: -0.01em; color: var(--tx);
+      display: flex; align-items: center; gap: 7px;
+    }
+    .tournament-banner__title::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--neon); box-shadow: 0 0 5px var(--neon);
+    }
+    .tournament-banner__sub {
+      font-family: var(--f-mono); font-size: 9px;
+      letter-spacing: 0.10em; text-transform: uppercase;
+      color: var(--tx-3); margin-top: 3px; padding-left: 13px;
+    }
+
+    /* ── Rank card (scrollable list) ── */
+    .rank-card {
+      flex: 1; min-height: 0;
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .rank-scroll {
+      flex: 1; min-height: 0;
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin; scrollbar-color: var(--glass-bd) transparent;
+    }
+    .rank-scroll::-webkit-scrollbar { width: 4px; }
+    .rank-scroll::-webkit-scrollbar-track { background: transparent; }
+    .rank-scroll::-webkit-scrollbar-thumb {
+      background: color-mix(in srgb, var(--tx-3) 45%, transparent);
+      border-radius: 4px;
+    }
+    .rank-scroll::-webkit-scrollbar-thumb:hover { background: var(--tx-3); }
+    .rank-list { display: flex; flex-direction: column; }
+
+    .rank-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px; border-bottom: 1px solid var(--line);
+      transition: background .12s;
+    }
+    .rank-row:last-child { border-bottom: none; }
+    .rank-row:hover { background: var(--glass-bg); }
+    .rank-row--me {
+      background: rgba(255,255,255,0.3);
+    }
+    .rank-row--me:hover { background: rgba(255,255,255,0.45); }
+
+    .rank-num {
+      font-family: var(--f-mono); font-weight: 700; font-size: 13px;
+      color: var(--tx-3); width: 22px; text-align: right; flex-shrink: 0;
+    }
+    .rank-num--gold   { color: hsl(45 90% 42%); }
+    .rank-num--silver { color: hsl(220 15% 55%); }
+    .rank-num--bronze { color: hsl(25 70% 50%); }
+
+    .rank-av {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--ph-base); display: flex; align-items: center; justify-content: center;
+      font-family: var(--f-display); font-weight: 900; font-size: 14px;
+      color: rgba(26,26,26,.35); border: 1.5px solid; flex-shrink: 0;
+    }
+    .rank-info { flex: 1; min-width: 0; }
+    .rank-name {
+      font-family: var(--f-ui); font-size: 13px; font-weight: 600; color: var(--tx);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .rank-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+    .rank-pts { font-family: var(--f-mono); font-size: 12px; font-weight: 700; color: var(--tx-2); flex-shrink: 0; text-align: right; }
+    .rank-pts-label { font-family: var(--f-mono); font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tx-3); text-align: right; }
+
+    /* ── My-rank card (separated, sits below the list) ── */
+    .my-rank-bar {
+      flex-shrink: 0; margin-top: 7px; position: relative;
+      display: flex; align-items: center; gap: 13px;
+      padding: 12px 15px; border-radius: 13px;
+      background: rgba(255,255,255,0.5);
+      border: 1px solid transparent;
+      -webkit-backdrop-filter: blur(16px) saturate(150%); backdrop-filter: blur(16px) saturate(150%);
+      box-shadow:
+        3px 4px 13px rgba(20,32,46,0.08),
+        -3px -3px 9px rgba(255,255,255,0.72),
+        inset 0 1px 0 rgba(255,255,255,0.95);
+    }
+    .my-rank-bar::before {
+      content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+      background: var(--metal);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+              mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; z-index: 1;
+    }
+    .my-rank-bar > * { position: relative; z-index: 2; }
+    .myr-rank { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; min-width: 40px; }
+    .myr-rank-kicker {
+      font-family: var(--f-mono); font-size: 7.5px; font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase; color: var(--tx-3); margin-bottom: 2px;
+    }
+    .myr-rank-num {
+      font-family: var(--f-display); font-weight: 900; font-size: 30px;
+      line-height: .85; letter-spacing: -.04em; color: var(--rk-champ);
+    }
+    .myr-rank-num small { font-size: 16px; opacity: .55; }
+    .myr-divider { width: 1px; align-self: stretch; background: var(--line); flex-shrink: 0; }
+    .myr-av {
+      width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--f-display); font-weight: 900; font-size: 16px;
+      border: 2px solid var(--rk-champ); color: var(--rk-champ); background: #fff;
+    }
+    .myr-info { flex: 1; min-width: 0; }
+    .myr-name {
+      font-family: var(--f-display); font-weight: 900; font-size: 16px;
+      letter-spacing: -.01em; color: var(--tx); line-height: 1;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .myr-sub {
+      font-family: var(--f-mono); font-size: 9px; letter-spacing: .04em;
+      color: var(--tx-3); margin-top: 5px;
+    }
+    .myr-stats { display: flex; gap: 16px; flex-shrink: 0; }
+    .myr-stat { text-align: right; }
+    .myr-stat b {
+      display: block; font-family: var(--f-mono); font-weight: 700;
+      font-size: 15px; color: var(--tx); line-height: 1;
+    }
+    .myr-stat span {
+      font-family: var(--f-mono); font-size: 8px; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--tx-3);
+    }
+
+    /* ── Friends panel ── */
+    .friends-empty {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 10px;
+      opacity: .5;
+    }
+
+    .friend-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px; border-bottom: 1px solid var(--line);
+    }
+    .friend-row:last-child { border-bottom: none; }
+    .friend-row--me {
+      background: rgba(255,255,255,0.3);
+    }
+
+    /* ── Dot indicator (same as Profile) ── */
+    .pager-footer {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 44px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      background: transparent;
+    }
+    .dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--tx-3);
+      transition: background .2s, width .2s; cursor: pointer;
+    }
+    .dot.active { background: var(--tx); width: 18px; border-radius: 3px; }
+
+    /* ── Pager wrapper (fills between header and nav) ── */
+    .pager-wrapper {
+      flex: 1; min-height: 0; position: relative;
+    }
+
+    /* ── Player info sheet ── */
+    .sheet-overlay {
+      position: fixed; inset: 0; z-index: 80;
+      background: rgba(0,0,0,0.18);
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s;
+    }
+    .sheet-overlay.show { opacity: 1; pointer-events: auto; }
+
+    .player-sheet {
+      position: fixed; bottom: 0; z-index: 81;
+      left: 50%; width: 375px; max-width: 100vw;
+      background: #ffffff;
+      border-radius: 20px 20px 0 0;
+      border: 1px solid var(--line);
+      border-bottom: none;
+      max-height: 44vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      transform: translateX(-50%) translateY(100%);
+      transition: transform .3s cubic-bezier(.32,.72,0,1);
+      box-shadow: 0 -8px 32px rgba(0,0,0,0.12);
+    }
+    .player-sheet.show { transform: translateX(-50%) translateY(0); }
+    .sheet-inner { display: contents; }
+
+    .sheet-handle {
+      width: 36px; height: 4px; border-radius: 2px;
+      background: var(--line); margin: 10px auto 14px;
+    }
+    .sheet-body { padding: 0 20px 16px; }
+
+    .sheet-av-row {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+    }
+    .sheet-av {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--f-display); font-weight: 900; font-size: 18px;
+      border: 2px solid; flex-shrink: 0;
+    }
+    .sheet-name {
+      font-family: var(--f-display); font-weight: 900;
+      font-size: 20px; letter-spacing: -0.02em; color: var(--tx); line-height: 1;
+    }
+    .sheet-rank {
+      font-family: var(--f-mono); font-size: 9px; font-weight: 700;
+      letter-spacing: .10em; text-transform: uppercase; margin-top: 3px;
+    }
+
+    .sheet-stats {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0; margin-bottom: 12px;
+      border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+    }
+    .sheet-stat {
+      padding: 9px 8px; text-align: center;
+      border-right: 1px solid var(--line);
+    }
+    .sheet-stat:last-child { border-right: none; }
+    .sheet-stat__val {
+      font-family: var(--f-mono); font-weight: 700; font-size: 15px;
+      color: var(--tx); line-height: 1;
+    }
+    .sheet-stat__label {
+      font-family: var(--f-mono); font-size: 8px;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: var(--tx-3); margin-top: 3px;
+    }
+
+    .rank-row { cursor: pointer; }
+    .rank-row:active { background: var(--glass-bg); }
+    .friend-row { cursor: pointer; }
+    .friend-row:active { background: var(--glass-bg); }
+
+    /* ═══ Gooey metaball background ═══ */
+    body.aqua-bg { background: #e9f1fc !important; }
+    body.aqua-bg::after, body.aqua-bg::before { display: none !important; }
+    .goo-stage { position: fixed; inset: 0; z-index: 0; filter: url(#goo); pointer-events: none; }
+    .goo-defs  { position: absolute; width: 0; height: 0; }
+    .blob      { position: absolute; border-radius: 50%; will-change: transform; }
+    /* frosted veil over the gooey bg */
+    .goo-veil {
+      position: fixed; inset: 0; z-index: 1; pointer-events: none;
+      background: rgba(255,255,255,0.58);
+      -webkit-backdrop-filter: blur(26px); backdrop-filter: blur(26px);
+    }
+  </style>
+</head>
+<body class="aqua-bg">
+  <div class="goo-stage" id="goo-stage"></div>
+  <div class="goo-veil"></div>
+  <svg class="goo-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <filter id="goo">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="22" result="blur"/>
+        <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8" result="goo"/>
+        <feGaussianBlur in="goo" stdDeviation="10"/>
+      </filter>
+    </defs>
+  </svg>
+  <div class="app-shell skin-aqua">
+
+    <!-- Header -->
+    <header class="app-header" style="flex-shrink:0;">
+      <a href="Grid Hub.html" style="display:flex;align-items:center;gap:8px;color:var(--tx-2);text-decoration:none;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <span class="logo">RANKING</span>
+      <div class="header-icons">
+        <div class="header-icon" title="通知" onclick="alert('通知中心即將開放')" style="position:relative;cursor:pointer;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 1.5a5 5 0 0 1 5 5v2.5l1 2H2l1-2V6.5a5 5 0 0 1 5-5z" stroke="currentColor" stroke-width="1.2" fill="none"/>
+            <path d="M6.5 13a1.5 1.5 0 0 0 3 0" stroke="currentColor" stroke-width="1.2" fill="none"/>
+          </svg>
+          <span style="position:absolute;top:6px;right:7px;width:6px;height:6px;border-radius:50%;background:hsl(8 90% 52%);"></span>
+        </div>
+        <a class="header-icon" href="Profile.html" title="個人">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+        </a>
+      </div>
+    </header>
+
+    <!-- Pager wrapper -->
+    <div class="pager-wrapper">
+
+      <!-- Pager track -->
+      <div class="pager-track" id="pager-track">
+
+        <!-- ══ Panel 1: 全體排行 ══ -->
+        <div class="pager-panel">
+          <div class="panel-content">
+
+            <div class="tech-row" style="flex-shrink:0;">
+              <span class="jp" style="font-size:10px;letter-spacing:.06em;">ランキング</span>
+              <span>[ JUN 2026 ]</span>
+            </div>
+
+            <!-- Region tabs -->
+            <div class="region-tabs">
+              <button class="region-tab region-tab--active" onclick="setRegion(this)">台北</button>
+              <button class="region-tab" onclick="setRegion(this)">香港</button>
+              <button class="region-tab" onclick="setRegion(this)">上海</button>
+              <button class="region-tab" onclick="setRegion(this)">廣州</button>
+              <button class="region-tab" onclick="setRegion(this)">全球</button>
+            </div>
+
+            <!-- Tournament banner -->
+            <a class="tournament-banner" href="#">
+              <div>
+                <div class="tournament-banner__title">月賽資格 開放中</div>
+                <div class="tournament-banner__sub">台北 · 前 64 名入圍 · 7/1 舉行</div>
+              </div>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;opacity:.5;">
+                <path d="M4 7h6M7 4l3 3-3 3" stroke="#0c2b0e" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+
+            <!-- My rank strip (separated) -->
+            <div class="my-rank-bar">
+              <div class="myr-rank">
+                <span class="myr-rank-num"><small>#</small>3</span>
+              </div>
+              <div class="myr-divider"></div>
+              <div class="myr-av">K</div>
+              <div class="myr-info">
+                <div class="myr-name">Kai
+                  <span class="rankchip" style="color:var(--rk-champ);font-size:9px;"><span class="gem" style="width:8px;height:8px;background:var(--rk-champ);"></span>CHAMPION</span>
+                </div>
+                <div class="myr-sub">台北 · 全體排名</div>
+              </div>
+              <div class="myr-stats">
+                <div class="myr-stat"><b>2,480</b><span>月積分</span></div>
+              </div>
+            </div>
+
+
+            <!-- Rank card -->
+            <div class="rank-card glass">
+              <div class="rank-scroll">
+                <div class="rank-list">
+
+                  <div class="rank-row">
+                    <div class="rank-num rank-num--gold">1</div>
+                    <div class="rank-av" style="border-color:var(--rk-champ);color:color-mix(in srgb,var(--rk-champ) 60%,transparent);">T</div>
+                    <div class="rank-info">
+                      <div class="rank-name">TornadoKnight</div>
+                      <div class="rank-meta">
+                        <span class="rankchip" style="color:var(--rk-champ);font-size:9px;"><span class="gem" style="width:8px;height:8px;background:var(--rk-champ);"></span>CHAMPION</span>
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;"><div class="rank-pts">3,120</div><div class="rank-pts-label">月積分</div></div>
+                  </div>
+
+                  <div class="rank-row">
+                    <div class="rank-num rank-num--silver">2</div>
+                    <div class="rank-av" style="border-color:var(--rk-champ);color:color-mix(in srgb,var(--rk-champ) 60%,transparent);">B</div>
+                    <div class="rank-info">
+                      <div class="rank-name">BladePhantom</div>
+                      <div class="rank-meta">
+                        <span class="rankchip" style="color:var(--rk-champ);font-size:9px;"><span class="gem" style="width:8px;height:8px;background:var(--rk-champ);"></span>CHAMPION</span>
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;"><div class="rank-pts">2,890</div><div class="rank-pts-label">月積分</div></div>
+                  </div>
+
+                  <div class="rank-row rank-row--me">
+                    <div class="rank-num rank-num--bronze">3</div>
+                    <div class="rank-av" style="border-color:var(--rk-champ);color:color-mix(in srgb,var(--rk-champ) 60%,transparent);">K</div>
+                    <div class="rank-info">
+                      <div class="rank-name" style="color:var(--rk-champ);">Kai</div>
+                      <div class="rank-meta">
+                        <span class="rankchip" style="color:var(--rk-champ);font-size:9px;"><span class="gem" style="width:8px;height:8px;background:var(--rk-champ);"></span>CHAMPION</span>
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;"><div class="rank-pts" style="color:var(--rk-champ);">2,480</div><div class="rank-pts-label" style="color:var(--rk-champ);opacity:.6;">月積分</div></div>
+                  </div>
+
+                  <div class="rank-row">
+                    <div class="rank-num">4</div>
+                    <div class="rank-av" style="border-color:var(--rk-primus);color:color-mix(in srgb,var(--rk-primus) 60%,transparent);">S</div>
+                    <div class="rank-info">
+                      <div class="rank-name">StormDragon</div>
+                      <div class="rank-meta">
+                        <span class="rankchip" style="color:var(--rk-primus);font-size:9px;"><span class="gem" style="width:8px;height:8px;background:var(--rk-primus);"></span>PRIMUS</span>
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;"><div class="rank-pts">2,210</div><div class="rank-pts-label">月積分</div></div>
+                  </div>
+
+                  <div class="rank-row">
+                    <div class="rank-num">5</div>
+                    <div class="rank-av" style="border-color:var(--rk-primus);color:color-mix(in srgb,var(--rk-primus) 60%,transparent);">V</div>
+                    <div class="rank-info">
+                      <div class="rank-name">Vortex</div>
+                      <div class="rank-meta">
+                        <span class="rankchip" style="color:var(--rk-primus);font-size:9px;"><span class="gem" style="width:8px;height:8px;background:var(--rk-primus);"></span>PRIMUS</span>
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;"><div class="rank-pts">1,840</div><div class="rank-pts-label">月積分</div></div>
+                  </div>
+
+                  <div class="rank-row">
+                    <div class="rank-num">6</div>
+                    <div class="rank-av" style="border-color:var(--rk-sec);color:color-mix(in srgb,var(--rk-sec) 60%,transparent);">N</div>
+                    <div class="rank-info">
+                      <div class="rank-name">NovaBlade</div>
+                      <div class="rank-meta">
+                        <span class="rankchip" style="color:var(--rk-sec);font-size:9px;"><span class="gem" style="width:8px;height:8px;background:var(--rk-sec);"></span>SECUTOR</span>
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;"><div class="rank-pts">1,580</div><div class="rank-pts-label">月積分</div></div>
+                  </div>
+
+                  <div class="rank-row">
+                    <div class="rank-num">7</div>
+                    <div class="rank-av" style="border-color:var(--rk-ret);color:color-mix(in srgb,var(--rk-ret) 60%,transparent);">C</div>
+                    <div class="rank-info">
+                      <div class="rank-name">CrystalFang</div>
+                      <div class="rank-meta">
+                        <span class="rankchip" style="color:var(--rk-ret);font-size:9px;"><span class="gem" style="width:8px;height:8px;background:var(--rk-ret);"></span>RETIARIVS</span>
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;"><div class="rank-pts">1,340</div><div class="rank-pts-label">月積分</div></div>
+                  </div>
+
+                  <div class="rank-row">
+                    <div class="rank-num">8</div>
+                    <div class="rank-av" style="border-color:var(--rk-prov);color:color-mix(in srgb,var(--rk-prov) 60%,transparent);">Z</div>
+                    <div class="rank-info">
+                      <div class="rank-name">Zenith</div>
+                      <div class="rank-meta">
+                        <span class="rankchip" style="color:var(--rk-prov);font-size:9px;"><span class="gem" style="width:8px;height:8px;background:var(--rk-prov);"></span>PROVOCATOR</span>
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;"><div class="rank-pts">1,120</div><div class="rank-pts-label">月積分</div></div>
+                  </div>
+
+                  <div class="rank-row">
+                    <div class="rank-num">9</div>
+                    <div class="rank-av" style="border-color:var(--rk-greg);color:color-mix(in srgb,var(--rk-greg) 60%,transparent);">I</div>
+                    <div class="rank-info">
+                      <div class="rank-name">IronClaw</div>
+                      <div class="rank-meta">
+                        <span class="rankchip" style="color:var(--rk-greg);font-size:9px;"><span class="gem" style="width:8px;height:8px;background:var(--rk-greg);"></span>GREGARIUS</span>
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;"><div class="rank-pts">980</div><div class="rank-pts-label">月積分</div></div>
+                  </div>
+
+                  <div class="rank-row">
+                    <div class="rank-num">10</div>
+                    <div class="rank-av" style="border-color:var(--rk-tiro);color:color-mix(in srgb,var(--rk-tiro) 60%,transparent);">P</div>
+                    <div class="rank-info">
+                      <div class="rank-name">PhoenixRise</div>
+                      <div class="rank-meta">
+                        <span class="rankchip" style="color:var(--rk-tiro);font-size:9px;"><span class="gem" style="width:8px;height:8px;background:var(--rk-tiro);"></span>TIRO</span>
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;"><div class="rank-pts">750</div><div class="rank-pts-label">月積分</div></div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+
+          </div>
+        </div>
+        <!-- ══ /Panel 1 ══ -->
+
+        <!-- ══ Panel 2: 好友排行 ══ -->
+        <div class="pager-panel">
+          <div class="panel-content">
+
+            <div class="tech-row" style="flex-shrink:0;">
+              <span class="jp" style="font-size:10px;letter-spacing:.06em;">フレンド</span>
+              <span>[ FRIENDS · 5 ]</span>
+            </div>
+
+            <!-- Rank card -->
+            <div class="rank-card glass">
+              <div class="rank-scroll">
+                <div class="rank-list">
+
+                  <div class="friend-row">
+                    <div class="rank-num rank-num--gold">1</div>
+                    <div class="rank-av" style="border-color:var(--rk-primus);color:color-mix(in srgb,var(--rk-primus) 60%,transparent);">V</div>
+                    <div class="rank-info">
+                      <div class="rank-name">Vortex</div>
+                      <div class="rank-meta">
+                        <span class="rankchip" style="color:var(--rk-primus);font-size:9px;"><span class="gem" style="width:8px;height:8px;background:var(--rk-primus);"></span>PRIMUS</span>
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;"><div class="rank-pts">1,840</div><div class="rank-pts-label">月積分</div></div>
+                  </div>
+
+                  <div class="friend-row friend-row--me">
+                    <div class="rank-num rank-num--silver">2</div>
+                    <div class="rank-av" style="border-color:var(--rk-champ);color:color-mix(in srgb,var(--rk-champ) 60%,transparent);">K</div>
+                    <div class="rank-info">
+                      <div class="rank-name" style="color:var(--rk-champ);">Kai</div>
+                      <div class="rank-meta">
+                        <span class="rankchip" style="color:var(--rk-champ);font-size:9px;"><span class="gem" style="width:8px;height:8px;background:var(--rk-champ);"></span>CHAMPION</span>
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;"><div class="rank-pts" style="color:var(--rk-champ);">2,480</div><div class="rank-pts-label" style="color:var(--rk-champ);opacity:.6;">月積分</div></div>
+                  </div>
+
+                  <div class="friend-row">
+                    <div class="rank-num rank-num--bronze">3</div>
+                    <div class="rank-av" style="border-color:var(--rk-sec);color:color-mix(in srgb,var(--rk-sec) 60%,transparent);">N</div>
+                    <div class="rank-info">
+                      <div class="rank-name">NovaBlade</div>
+                      <div class="rank-meta">
+                        <span class="rankchip" style="color:var(--rk-sec);font-size:9px;"><span class="gem" style="width:8px;height:8px;background:var(--rk-sec);"></span>SECUTOR</span>
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;"><div class="rank-pts">1,580</div><div class="rank-pts-label">月積分</div></div>
+                  </div>
+
+                  <div class="friend-row">
+                    <div class="rank-num ">4</div>
+                    <div class="rank-av" style="border-color:var(--rk-prov);color:color-mix(in srgb,var(--rk-prov) 60%,transparent);">Z</div>
+                    <div class="rank-info">
+                      <div class="rank-name">Zenith</div>
+                      <div class="rank-meta">
+                        <span class="rankchip" style="color:var(--rk-prov);font-size:9px;"><span class="gem" style="width:8px;height:8px;background:var(--rk-prov);"></span>PROVOCATOR</span>
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;"><div class="rank-pts">1,120</div><div class="rank-pts-label">月積分</div></div>
+                  </div>
+
+                  <div class="friend-row">
+                    <div class="rank-num ">5</div>
+                    <div class="rank-av" style="border-color:var(--rk-greg);color:color-mix(in srgb,var(--rk-greg) 60%,transparent);">I</div>
+                    <div class="rank-info">
+                      <div class="rank-name">IronClaw</div>
+                      <div class="rank-meta">
+                        <span class="rankchip" style="color:var(--rk-greg);font-size:9px;"><span class="gem" style="width:8px;height:8px;background:var(--rk-greg);"></span>GREGARIUS</span>
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;"><div class="rank-pts">980</div><div class="rank-pts-label">月積分</div></div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <!-- ══ /Panel 2 ══ -->
+
+
+      </div><!-- /pager-track -->
+
+      <!-- Footer: dots -->
+      <div class="pager-footer">
+        <div class="dot active" data-target="0" onclick="goPanel(0)"></div>
+        <div class="dot" data-target="1" onclick="goPanel(1)"></div>
+      </div>
+
+
+
+    </div><!-- /pager-wrapper -->
+
+  </div>
+
+  <!-- Player info sheet -->
+  <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
+  <div class="player-sheet" id="player-sheet">
+    <div class="sheet-inner">
+      <div class="sheet-handle"></div>
+      <div class="sheet-body">
+        <div class="sheet-av-row">
+        <div class="sheet-av" id="sh-av"></div>
+        <div>
+          <div class="sheet-name" id="sh-name"></div>
+          <div class="sheet-rank" id="sh-rank"></div>
+        </div>
+      </div>
+      <div class="sheet-stats">
+        <div class="sheet-stat">
+          <div class="sheet-stat__val" id="sh-pts"></div>
+          <div class="sheet-stat__label">月積分</div>
+        </div>
+        <div class="sheet-stat">
+          <div class="sheet-stat__val" id="sh-wr"></div>
+          <div class="sheet-stat__label">勝率</div>
+        </div>
+      </div>
+      <button onclick="alert('好友功能即將開放')" style="width:100%;padding:13px;border-radius:12px;border:1.5px solid var(--glass-bd);background:transparent;font-family:var(--f-mono);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx-2);cursor:pointer;">+ 加為好友</button>
+    </div>
+    </div>
+  </div>
+
+  <script>
+    // Player data
+    const PLAYERS = {
+      'TornadoKnight': { letter:'T', rank:'CHAMPION', rankVar:'var(--rk-champ)', elo:'2,840', pts:'3,120', wr:'72%' },
+      'BladePhantom':  { letter:'B', rank:'CHAMPION', rankVar:'var(--rk-champ)', elo:'2,710', pts:'2,890', wr:'69%' },
+      'StormDragon':   { letter:'S', rank:'PRIMUS',   rankVar:'var(--rk-primus)', elo:'2,320', pts:'2,210', wr:'63%' },
+      'Vortex':        { letter:'V', rank:'PRIMUS',   rankVar:'var(--rk-primus)', elo:'2,190', pts:'1,840', wr:'54%' },
+      'NovaBlade':     { letter:'N', rank:'SECUTOR',  rankVar:'var(--rk-sec)',    elo:'1,980', pts:'1,580', wr:'58%' },
+      'CrystalFang':   { letter:'C', rank:'RETIARIVS',rankVar:'var(--rk-ret)',    elo:'1,760', pts:'1,340', wr:'51%' },
+      'Zenith':        { letter:'Z', rank:'PROVOCATOR',rankVar:'var(--rk-prov)', elo:'1,540', pts:'1,120', wr:'49%' },
+      'IronClaw':      { letter:'I', rank:'GREGARIUS', rankVar:'var(--rk-greg)', elo:'1,310', pts:'980',   wr:'44%' },
+      'PhoenixRise':   { letter:'P', rank:'TIRO',      rankVar:'var(--rk-tiro)', elo:'1,080', pts:'750',   wr:'38%' },
+    };
+
+    function openSheet(name) {
+      if (name === 'Kai') return; // don't show sheet for self
+      const p = PLAYERS[name];
+      if (!p) return;
+      const av = document.getElementById('sh-av');
+      av.textContent = p.letter;
+      av.style.borderColor = p.rankVar;
+      av.style.color = p.rankVar;
+      document.getElementById('sh-name').textContent = name;
+      const rankEl = document.getElementById('sh-rank');
+      rankEl.textContent = p.rank;
+      rankEl.style.color = p.rankVar;
+      document.getElementById('sh-pts').textContent = p.pts;
+      document.getElementById('sh-wr').textContent  = p.wr;
+      document.getElementById('sheet-overlay').classList.add('show');
+      document.getElementById('player-sheet').classList.add('show');
+    }
+
+    function closeSheet() {
+      document.getElementById('sheet-overlay').classList.remove('show');
+      document.getElementById('player-sheet').classList.remove('show');
+    }
+
+    // Wire up rank rows
+    document.querySelectorAll('.rank-row, .friend-row').forEach(row => {
+      const nameEl = row.querySelector('.rank-name');
+      if (!nameEl) return;
+      const rawName = nameEl.textContent.replace(/·.*/,'').trim();
+      if (rawName === 'Kai') return;
+      row.addEventListener('click', () => openSheet(rawName));
+    });
+
+    function setRegion(btn) {
+      document.querySelectorAll('.region-tab').forEach(t => t.classList.remove('region-tab--active'));
+      btn.classList.add('region-tab--active');
+    }
+    function goPanel(idx) {
+      const track = document.getElementById('pager-track');
+      track.scrollTo({ left: idx * track.clientWidth, behavior: 'smooth' });
+    }
+    (function() {
+      const track = document.getElementById('pager-track');
+      const dots = document.querySelectorAll('.dot');
+      track.addEventListener('scroll', function() {
+        const idx = Math.round(track.scrollLeft / track.clientWidth);
+        dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+      }, { passive: true });
+    })();
+  </script>
+
+  <!-- Gooey metaballs background -->
+  <script>
+  (function(){
+    const stage = document.getElementById('goo-stage'); if(!stage) return;
+    const W=()=>window.innerWidth, H=()=>window.innerHeight;
+    const COLORS=['#2A6FDB','#3278E2','#1FA6D6','#4FC3F7','#6E8BF5','#2A6FDB','#3aa0e6','#F15A22','#2A6FDB'];
+    const COUNT=COLORS.length, blobs=[];
+    class Blob{
+      constructor(i){ this.el=document.createElement('div'); this.el.className='blob';
+        this.el.style.background=COLORS[i%COLORS.length]; stage.appendChild(this.el); this.reset(); }
+      reset(){ this.r=70+Math.random()*120; this.x=Math.random()*W(); this.y=Math.random()*H();
+        this.speed=2.4+Math.random()*1.8; const a=Math.random()*Math.PI*2;
+        this.vx=Math.cos(a)*this.speed; this.vy=Math.sin(a)*this.speed;
+        this.pulsePhase=Math.random()*Math.PI*2; this.pulseSpeed=0.7+Math.random()*0.9; this.baseR=this.r;
+        this.wobPhase=Math.random()*Math.PI*2; this.wobSpeed=0.9+Math.random()*1.2; this.wobAmp=7+Math.random()*9;
+        this.flowPhase=Math.random()*Math.PI*2; this.flowSpeed=0.010+Math.random()*0.014;
+        this.moodPhase=Math.random()*Math.PI*2; this.moodSpeed=0.25+Math.random()*0.5; this.applySize(); }
+      applySize(){ this.el.style.width=this.r*2+'px'; this.el.style.height=this.r*2+'px'; }
+      update(t,bs){
+        this.flowPhase+=this.flowSpeed;
+        this.vx+=Math.cos(this.flowPhase)*0.24; this.vy+=Math.sin(this.flowPhase*1.3+0.7)*0.24;
+        const myMood=Math.sin(t*this.moodSpeed+this.moodPhase);
+        for(const o of bs){ if(o===this)continue;
+          const dx=o.x-this.x,dy=o.y-this.y,d=Math.hypot(dx,dy)||1,range=this.r+o.r+150;
+          if(d<range){ const oM=Math.sin(t*o.moodSpeed+o.moodPhase),mood=(myMood+oM)*0.5,f=(1-d/range)*mood*0.10;
+            this.vx+=dx/d*f; this.vy+=dy/d*f;
+            const near=(this.r+o.r)*0.55; if(d<near){ const push=(1-d/near)*0.30; this.vx-=dx/d*push; this.vy-=dy/d*push; } } }
+        this.vx*=0.97; this.vy*=0.97; const sp=Math.hypot(this.vx,this.vy)||1,MIN=0.7,MAX=4.0;
+        if(sp<MIN){const k=MIN/sp;this.vx*=k;this.vy*=k;} else if(sp>MAX){const k=MAX/sp;this.vx*=k;this.vy*=k;}
+        this.x+=this.vx; this.y+=this.vy;
+        if(this.x<-this.r*0.5||this.x>W()+this.r*0.5)this.vx*=-1;
+        if(this.y<-this.r*0.5||this.y>H()+this.r*0.5)this.vy*=-1;
+        const pulse=1+Math.sin(t*this.pulseSpeed+this.pulsePhase)*0.16; this.r=this.baseR*pulse; this.applySize();
+        const wx=Math.sin(t*this.wobSpeed+this.wobPhase)*this.wobAmp, wy=Math.cos(t*this.wobSpeed*0.85+this.wobPhase)*this.wobAmp;
+        this.el.style.transform='translate('+(this.x-this.r+wx)+'px,'+(this.y-this.r+wy)+'px)'; }
+    }
+    for(let i=0;i<COUNT;i++)blobs.push(new Blob(i));
+    const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let start=null;
+    function loop(ts){ if(start===null)start=ts; const t=(ts-start)/1000; for(const b of blobs)b.update(t,blobs); if(!reduce)requestAnimationFrame(loop); }
+    if(reduce){ for(const b of blobs)b.update(0,blobs); } else requestAnimationFrame(loop);
+    window.addEventListener('resize',()=>{ for(const b of blobs){ b.x=Math.min(b.x,W()); b.y=Math.min(b.y,H()); } });
+  })();
+  </script>
+</body>
+</html>

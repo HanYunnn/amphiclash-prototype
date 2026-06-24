@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AMPHICLASH — Battle Spot</title>
+  <link rel="stylesheet" href="_styles.css?v=2">
+  <style>
+    body { align-items: stretch; background: #ffffff; }
+    .app-shell { height: 100dvh; max-height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+    .app-header .logo { position: absolute; left: 50%; transform: translateX(-50%); pointer-events: none; }
+
+    /* ── Search + toggle + create ── */
+    .search-row { flex-shrink: 0; display: flex; gap: 8px; padding: 8px 16px 6px; align-items: center; }
+    .search-box { flex: 1; position: relative; display: flex; align-items: center; }
+    .search-box svg { position: absolute; left: 12px; color: var(--tx-3); pointer-events: none; }
+    .search-input {
+      width: 100%; font-family: var(--f-ui); font-size: 13px; color: var(--tx);
+      padding: 11px 12px 11px 34px; border-radius: 11px; outline: none; border: none;
+      background: rgba(255,255,255,0.7);
+      box-shadow: inset 2px 3px 7px rgba(20,32,46,0.10), inset -2px -2px 6px rgba(255,255,255,0.85);
+    }
+    .search-input::placeholder { color: var(--tx-3); }
+    .view-toggle {
+      flex-shrink: 0; display: flex; gap: 3px; padding: 3px; position: relative;
+      border-radius: 11px; border: none; background: rgba(255,255,255,0.5);
+      box-shadow: 3px 4px 11px rgba(20,32,46,0.07), -3px -3px 8px rgba(255,255,255,0.85), inset 0 1px 0 rgba(255,255,255,0.9);
+    }
+    .view-toggle::before {
+      content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; background: var(--metal);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+              mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+    }
+    .vt-opt { position: relative; z-index: 1; width: 38px; height: 36px; border: none; background: transparent; cursor: pointer; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--tx-3); transition: all .15s; }
+    .vt-opt.active { background: var(--tx); color: #fff; box-shadow: 2px 3px 8px rgba(20,32,46,0.22), inset 0 1px 0 rgba(255,255,255,0.16); }
+
+    .filter-row { flex-shrink: 0; display: flex; gap: 6px; padding: 2px 16px 4px; align-items: center; }
+    .fchip {
+      font-family: var(--f-mono); font-size: 10px; font-weight: 700; letter-spacing: .06em;
+      padding: 6px 13px; border-radius: 20px; border: none; cursor: pointer; color: var(--tx-3);
+      background: rgba(255,255,255,0.5);
+      box-shadow: 3px 4px 9px rgba(20,32,46,0.06), -3px -3px 7px rgba(255,255,255,0.85), inset 0 1px 0 rgba(255,255,255,0.9);
+    }
+    .fchip.active { background: var(--tx); color: #fff; box-shadow: inset 2px 3px 7px rgba(0,0,0,0.28), inset -1px -1px 3px rgba(255,255,255,0.12); }
+    .fchip--mine { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; }
+
+    /* ── Map view ── */
+    .view-map { flex: 1; min-height: 0; position: relative; margin: 10px 16px 12px; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 20px rgba(20,32,46,0.10), inset 1px 1px 2px rgba(255,255,255,0.8); background: #e9eef3; }
+    .view-map.hidden { display: none; }
+    .map-svg { width: 100%; height: 100%; display: block; }
+    .map-pin { position: absolute; transform: translate(-50%,-100%); cursor: pointer; z-index: 2; }
+    .pin-head { width: 34px; height: 34px; border-radius: 50%; background: #fff; border: 2px solid rgba(20,32,46,0.4); box-shadow: 2px 3px 8px rgba(20,32,46,0.2); display: flex; align-items: center; justify-content: center; }
+    .pin-head span { font-family: var(--f-mono); font-size: 10px; font-weight: 700; color: var(--tx); white-space: nowrap; }
+    .map-pin--official .pin-head { border-color: var(--rk-primus); }
+    .map-pin--official .pin-head span { color: var(--rk-primus); }
+    .map-pin--live .pin-head { border-color: var(--neon-dim); }
+    .you-dot { position: absolute; transform: translate(-50%,-50%); z-index: 1; width: 16px; height: 16px; border-radius: 50%; background: hsl(220 90% 56%); border: 3px solid #fff; box-shadow: 0 0 0 4px color-mix(in srgb, hsl(220 90% 56%) 22%, transparent); }
+    .map-recenter { position: absolute; right: 12px; bottom: 12px; z-index: 4; width: 40px; height: 40px; border-radius: 11px; cursor: pointer; background: rgba(255,255,255,0.78); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border: none; box-shadow: 3px 4px 11px rgba(20,32,46,0.12), -3px -3px 8px rgba(255,255,255,0.85), inset 0 1px 0 rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; color: var(--tx-2); }
+    .map-peek { position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 4; cursor: pointer; padding: 12px 13px; border-radius: 14px; background: rgba(255,255,255,0.82); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 8px 28px rgba(20,32,46,.16); border: 1px solid rgba(255,255,255,0.7); }
+
+    /* ── List view ── */
+    .view-list { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 2px 12px 0; }
+    .view-list.hidden { display: none; }
+    .list-scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 11px; padding: 6px 5px 18px; scrollbar-width: thin; scrollbar-color: color-mix(in srgb,var(--tx-3) 45%,transparent) transparent; }
+    .list-scroll::-webkit-scrollbar { width: 4px; }
+    .list-scroll::-webkit-scrollbar-thumb { background: color-mix(in srgb,var(--tx-3) 45%,transparent); border-radius: 4px; }
+    .empty-note { text-align: center; padding: 30px 0; font-family: var(--f-mono); font-size: 11px; color: var(--tx-3); }
+
+    /* ── Spot card ── */
+    .spot-card { flex-shrink: 0; border-radius: 15px; padding: 14px 15px; cursor: pointer; transition: transform .12s; }
+    .skin-aqua .spot-card { box-shadow: 3px 4px 13px rgba(20,32,46,0.08), -3px -3px 9px rgba(255,255,255,0.72), inset 0 1px 0 rgba(255,255,255,0.95) !important; }
+    .spot-card:active { transform: scale(0.995); }
+    .sc-top { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; }
+    .sc-badge { font-family: var(--f-mono); font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; }
+    .sc-badge--official { color: var(--rk-primus); background: color-mix(in srgb,var(--rk-primus) 12%,transparent); }
+    .sc-badge--team { color: var(--tx-2); background: rgba(20,32,46,0.06); }
+    .sc-status { margin-left: auto; font-family: var(--f-mono); font-size: 9px; font-weight: 700; letter-spacing: .06em; display: inline-flex; align-items: center; gap: 5px; }
+    .sc-status i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .sc-status--open { color: #1a7a3a; }
+    .sc-status--soon { color: hsl(25 80% 45%); }
+    .sc-status--live { color: var(--neon-dim); }
+    .sc-status--live i { box-shadow: 0 0 5px var(--neon); animation: pulse 1.1s ease-in-out infinite; }
+    .sc-status--end { color: var(--tx-3); }
+    .sc-title { font-family: var(--f-display); font-weight: 900; font-size: 17px; letter-spacing: -.01em; color: var(--tx); line-height: 1.1; }
+    .sc-meta { display: flex; flex-wrap: wrap; gap: 5px 14px; margin-top: 9px; }
+    .sc-mi { display: flex; align-items: center; gap: 5px; font-family: var(--f-mono); font-size: 10px; color: var(--tx-2); letter-spacing: .02em; }
+    .sc-mi svg { color: var(--tx-3); flex-shrink: 0; }
+    .sc-foot { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line); }
+    .sc-cap { display: flex; align-items: center; gap: 8px; flex: 1; }
+    .sc-bar { flex: 1; height: 6px; border-radius: 3px; background: rgba(20,32,46,0.08); overflow: hidden; max-width: 120px; }
+    .sc-bar i { display: block; height: 100%; border-radius: 3px; background: var(--tx); }
+    .sc-cap-n { font-family: var(--f-mono); font-size: 11px; font-weight: 700; color: var(--tx); }
+    .sc-reward { font-family: var(--f-mono); font-size: 9.5px; font-weight: 700; color: hsl(38 90% 42%); display: inline-flex; align-items: center; gap: 4px; }
+
+    /* host avatar */
+    .sc-host { display: flex; align-items: center; gap: 6px; }
+    .sc-host-av { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--rk-champ); color: var(--rk-champ); display: flex; align-items: center; justify-content: center; font-family: var(--f-display); font-weight: 900; font-size: 10px; background: #fff; }
+    .sc-host-name { font-family: var(--f-mono); font-size: 9.5px; color: var(--tx-3); }
+
+    /* ── Create button (fab in toolbar) ── */
+    .create-btn { flex-shrink: 0; width: 42px; height: 42px; border-radius: 12px; border: none; cursor: pointer; background: var(--tx); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 3px 4px 12px rgba(20,32,46,0.24), inset 0 1px 0 rgba(255,255,255,0.16); }
+
+    /* ── Bottom sheet (shared) ── */
+    .sheet-overlay { position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,.4); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity .25s; display: flex; align-items: flex-end; justify-content: center; }
+    .sheet-overlay.show { opacity: 1; pointer-events: auto; }
+    .sheet { width: 100%; max-width: 390px; background: #fff; border-radius: 22px 22px 0 0; padding: 20px 20px 28px; box-shadow: 0 -8px 40px rgba(0,0,0,.2); transform: translateY(40px); transition: transform .3s cubic-bezier(.34,1.56,.64,1); max-height: 86dvh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .sheet-overlay.show .sheet { transform: translateY(0); }
+    .sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: -6px auto 16px; }
+
+    .ds-title { font-family: var(--f-display); font-weight: 900; font-size: 23px; letter-spacing: -.02em; color: var(--tx); line-height: 1.05; }
+    .ds-host { display: flex; align-items: center; gap: 7px; margin-top: 10px; }
+    .ds-host .sc-host-av { width: 26px; height: 26px; font-size: 12px; }
+    .ds-host-name { font-family: var(--f-mono); font-size: 11px; color: var(--tx-2); }
+    .ds-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 16px 0; }
+    .ds-cell { padding: 11px 12px; border-radius: 12px; background: rgba(255,255,255,0.5); box-shadow: 2px 3px 9px rgba(20,32,46,0.05), inset 0 1px 0 rgba(255,255,255,0.9); }
+    .ds-k { font-family: var(--f-mono); font-size: 8px; letter-spacing: .10em; text-transform: uppercase; color: var(--tx-3); margin-bottom: 4px; }
+    .ds-v { font-family: var(--f-ui); font-size: 13px; font-weight: 600; color: var(--tx); }
+    .ds-desc { font-family: var(--f-ui); font-size: 13px; line-height: 1.6; color: var(--tx-2); margin-bottom: 16px; }
+    .ds-sec { font-family: var(--f-mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--tx-3); margin: 16px 0 9px; display: flex; align-items: center; justify-content: space-between; }
+
+    .signup-row { display: flex; align-items: center; gap: -6px; }
+    .su-av { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff; margin-left: -6px; display: flex; align-items: center; justify-content: center; font-family: var(--f-display); font-weight: 900; font-size: 11px; box-shadow: 0 2px 5px rgba(20,32,46,0.12); }
+    .su-av:first-child { margin-left: 0; }
+    .su-more { font-family: var(--f-mono); font-size: 11px; color: var(--tx-3); margin-left: 10px; }
+
+    /* comments */
+    .cmt { display: flex; gap: 9px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+    .cmt:last-child { border-bottom: none; }
+    .cmt-av { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-family: var(--f-display); font-weight: 900; font-size: 11px; border: 1.5px solid; background: #fff; }
+    .cmt-body { flex: 1; min-width: 0; }
+    .cmt-name { font-family: var(--f-mono); font-size: 10px; font-weight: 700; color: var(--tx-2); }
+    .cmt-name.host { color: var(--rk-champ); }
+    .cmt-text { font-family: var(--f-ui); font-size: 12.5px; color: var(--tx); line-height: 1.4; margin-top: 2px; }
+    .cmt-time { font-family: var(--f-mono); font-size: 8.5px; color: var(--tx-3); margin-top: 3px; }
+    .cmt-input-row { display: flex; gap: 8px; margin-top: 10px; }
+    .cmt-input { flex: 1; font-family: var(--f-ui); font-size: 13px; color: var(--tx); padding: 10px 14px; border-radius: 11px; border: none; outline: none; background: rgba(255,255,255,0.7); box-shadow: inset 2px 3px 7px rgba(20,32,46,0.10), inset -2px -2px 6px rgba(255,255,255,0.85); }
+    .cmt-send { flex-shrink: 0; padding: 0 16px; border-radius: 11px; border: none; background: var(--tx); color: #fff; font-family: var(--f-mono); font-size: 11px; font-weight: 700; cursor: pointer; }
+
+    /* schedule (live) */
+    .sched-match { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 11px; background: rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px var(--line); margin-bottom: 7px; }
+    .sched-r { font-family: var(--f-mono); font-size: 9px; color: var(--tx-3); width: 30px; flex-shrink: 0; }
+    .sched-vs { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: var(--f-display); font-weight: 900; font-size: 13px; color: var(--tx); }
+    .sched-vs small { font-family: var(--f-mono); font-weight: 700; font-size: 10px; color: var(--tx-3); }
+    .sched-score { font-family: var(--f-mono); font-size: 12px; font-weight: 700; color: var(--tx); flex-shrink: 0; }
+
+    /* primary action */
+    .ds-cta { width: 100%; margin-top: 18px; padding: 15px; border-radius: 13px; border: none; cursor: pointer; font-family: var(--f-display); font-weight: 900; font-size: 15px; letter-spacing: .02em; background: var(--tx); color: #fff; box-shadow: 4px 5px 14px rgba(20,32,46,0.22), inset 0 1px 0 rgba(255,255,255,0.16); }
+    .ds-cta--joined { background: rgba(20,32,46,0.05); color: var(--tx-2); box-shadow: none; }
+    .ds-cta--full { background: rgba(20,32,46,0.04); color: var(--tx-3); box-shadow: none; cursor: default; }
+
+    /* create form */
+    .field { margin-bottom: 13px; }
+    .field-k { font-family: var(--f-mono); font-size: 9px; letter-spacing: .10em; text-transform: uppercase; color: var(--tx-3); margin-bottom: 6px; }
+    .field input, .field textarea { width: 100%; font-family: var(--f-ui); font-size: 14px; color: var(--tx); padding: 11px 13px; border-radius: 11px; border: none; outline: none; background: rgba(255,255,255,0.7); box-shadow: inset 2px 3px 7px rgba(20,32,46,0.10), inset -2px -2px 6px rgba(255,255,255,0.85); resize: none; }
+    .field-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    /* floating action buttons */
+    .fab-stack { position: absolute; right: 30px; bottom: 26px; z-index: 60; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+    .fab-stack.lifted { }
+    .fab { width: 52px; height: 52px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .fab--create { background: var(--tx); color: #fff; box-shadow: 4px 6px 18px rgba(20,32,46,0.32), inset 0 1px 0 rgba(255,255,255,0.18); }
+    .fab--create:active { transform: scale(0.95); }
+    .fab--locate { width: 46px; height: 46px; background: rgba(255,255,255,0.85); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: var(--tx-2); box-shadow: 3px 4px 13px rgba(20,32,46,0.16), -2px -2px 7px rgba(255,255,255,0.7), inset 0 1px 0 rgba(255,255,255,0.9); }
+    .fab--locate.active { background: hsl(220 90% 56%); color: #fff; box-shadow: 0 0 0 4px color-mix(in srgb,hsl(220 90% 56%) 22%, transparent), 3px 4px 13px rgba(20,32,46,0.2); }
+    .player-dot { position: absolute; transform: translate(-50%,-50%); z-index: 1; width: 9px; height: 9px; border-radius: 50%; background: hsl(220 80% 60%); border: 2px solid #fff; box-shadow: 0 1px 4px rgba(20,32,46,0.25); opacity: 0; transition: opacity .3s; }
+    .view-map.located .player-dot { opacity: 1; }
+    .sc-dist { font-family: var(--f-mono); font-size: 10px; font-weight: 700; color: hsl(220 80% 50%); display: inline-flex; align-items: center; gap: 4px; }
+
+    .toast { position: fixed; left: 50%; bottom: 30px; z-index: 120; transform: translateX(-50%) translateY(12px); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; display: flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 100px; background: var(--tx); color: #fff; font-family: var(--f-mono); font-size: 11px; font-weight: 700; box-shadow: 0 8px 24px rgba(20,32,46,.28); }
+    .toast i { width: 6px; height: 6px; border-radius: 50%; background: var(--neon); box-shadow: 0 0 5px var(--neon); }
+
+    /* ═══ Bracket overlay ═══ */
+    .bracket-overlay { position: fixed; inset: 0; z-index: 100; display: flex; justify-content: center; opacity: 0; pointer-events: none; }
+    .bracket-overlay.show { opacity: 1; pointer-events: auto; }
+    .bk-panel { width: 100%; max-width: 390px; height: 100%; background: #eaf0f6; display: flex; flex-direction: column; }
+    .bk-head { flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 14px 16px 10px; }
+    .bk-head > div { min-width: 0; flex: 1; }
+    .bk-head-t { font-family: var(--f-display); font-weight: 900; font-size: 16px; color: var(--tx); line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bk-head-s { font-family: var(--f-mono); font-size: 9.5px; color: var(--tx-3); margin-top: 4px; letter-spacing: .04em; }
+    .bk-close { margin-left: auto; flex-shrink: 0; width: 34px; height: 34px; border-radius: 10px; border: none; cursor: pointer; background: rgba(255,255,255,0.8); color: var(--tx-2); display: flex; align-items: center; justify-content: center; box-shadow: 2px 3px 8px rgba(20,32,46,0.1), inset 0 1px 0 #fff; }
+    .bk-scroll { flex: 1; min-height: 0; overflow: auto; -webkit-overflow-scrolling: touch; padding: 4px 18px 26px; scrollbar-width: thin; scrollbar-color: color-mix(in srgb,var(--tx-3) 45%,transparent) transparent; }
+    .bk-scroll::-webkit-scrollbar { height: 4px; width: 4px; }
+    .bk-scroll::-webkit-scrollbar-thumb { background: color-mix(in srgb,var(--tx-3) 45%,transparent); border-radius: 4px; }
+    .bk { display: inline-flex; flex-direction: column; min-width: 100%; min-height: 100%; }
+    .bk-labels { display: flex; flex-shrink: 0; }
+    .bk-labels > div { width: 138px; flex-shrink: 0; text-align: center; font-family: var(--f-mono); font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--tx-3); padding: 6px 0 12px; }
+    .bk-body { display: flex; flex: 1; }
+    .bk-col { width: 138px; flex-shrink: 0; display: flex; flex-direction: column; justify-content: space-around; padding-right: 26px; }
+    .bk-col--champ { padding-right: 0; justify-content: center; }
+    .bk-pair { position: relative; display: flex; flex-direction: column; justify-content: space-around; flex: 1; }
+    .bk-col--has .bk-pair::after { content: ''; position: absolute; left: calc(100% + 13px); top: 25%; bottom: 25%; width: 2px; background: #c2cfdb; }
+    .bk-col--has .bk-pair::before { content: ''; position: absolute; left: calc(100% + 13px); top: 50%; width: 13px; height: 2px; background: #c2cfdb; }
+    .bk-match { position: relative; background: #fff; border-radius: 10px; box-shadow: 3px 4px 10px rgba(20,32,46,0.08), inset 0 1px 0 rgba(255,255,255,0.9); overflow: hidden; }
+    .bk-col--has .bk-match::after { content: ''; position: absolute; left: 100%; top: 50%; width: 13px; height: 2px; background: #c2cfdb; }
+    .bk-slot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; font-family: var(--f-ui); font-size: 11.5px; color: var(--tx-2); }
+    .bk-slot + .bk-slot { border-top: 1px solid var(--line); }
+    .bk-slot.win { color: var(--tx); font-weight: 700; }
+    .bk-pn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px; }
+    .bk-sc { font-family: var(--f-mono); font-weight: 700; font-size: 12px; flex-shrink: 0; color: var(--tx-3); }
+    .bk-slot.win .bk-sc { color: var(--rk-champ); }
+    .bk-slot.tbd { color: var(--tx-3); font-style: normal; }
+    .bk-slot.live .bk-pn::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--neon); box-shadow: 0 0 5px var(--neon); flex-shrink: 0; animation: pulse 1.1s ease-in-out infinite; }
+    .bk-live-tag { display: inline-block; margin-left: 6px; font-family: var(--f-mono); font-size: 8px; font-weight: 700; letter-spacing: .06em; color: var(--neon-dim); }
+    .bk-champ { width: 138px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+    .bk-champ-cup { width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: hsl(38 90% 45%); background: hsl(38 90% 94%); box-shadow: 3px 4px 11px rgba(20,32,46,0.1), inset 0 1px 0 #fff; }
+    .bk-champ-l { font-family: var(--f-mono); font-size: 8.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--tx-3); }
+    .bk-champ-n { font-family: var(--f-display); font-weight: 900; font-size: 15px; color: var(--tx-3); }
+  </style>
+</head>
+<body class="aqua-bg skin-aqua">
+  <div class="app-shell skin-aqua">
+
+    <header class="app-header" style="flex-shrink:0;">
+      <a href="Grid Hub.html" style="display:flex;align-items:center;color:var(--tx-2);text-decoration:none;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <span class="logo">BATTLE SPOT</span>
+      <div class="header-icons">
+        <div class="header-icon" title="通知" style="position:relative;cursor:pointer;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5a5 5 0 0 1 5 5v2.5l1 2H2l1-2V6.5a5 5 0 0 1 5-5z" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M6.5 13a1.5 1.5 0 0 0 3 0" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+          <span style="position:absolute;top:1px;right:3px;width:7px;height:7px;border-radius:50%;background:hsl(8 90% 52%);z-index:5;"></span>
+        </div>
+        <a href="Profile.html" class="header-icon">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </a>
+      </div>
+    </header>
+
+    <!-- Search + toggle + create -->
+    <div class="search-row">
+      <div class="search-box">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 10l3.5 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <input class="search-input" id="search" type="text" placeholder="搜尋揪團、賽事…" oninput="onSearch(this.value)" />
+      </div>
+      <div class="view-toggle">
+        <button class="vt-opt active" id="vt-list" onclick="setView('list')" title="清單">
+          <svg width="17" height="17" viewBox="0 0 18 18" fill="none"><path d="M6 4.5h9M6 9h9M6 13.5h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="3" cy="4.5" r="1" fill="currentColor"/><circle cx="3" cy="9" r="1" fill="currentColor"/><circle cx="3" cy="13.5" r="1" fill="currentColor"/></svg>
+        </button>
+        <button class="vt-opt" id="vt-map" onclick="setView('map')" title="地圖">
+          <svg width="17" height="17" viewBox="0 0 18 18" fill="none"><path d="M9 1.5c2.6 0 4.7 2 4.7 4.5C13.7 9.5 9 16 9 16s-4.7-6.5-4.7-10C4.3 3.5 6.4 1.5 9 1.5z" stroke="currentColor" stroke-width="1.3"/><circle cx="9" cy="6" r="1.8" stroke="currentColor" stroke-width="1.3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter chips -->
+    <div class="filter-row">
+      <button class="fchip active" data-f="all" onclick="setFilter('all',this)">全部</button>
+      <button class="fchip" data-f="team" onclick="setFilter('team',this)">揪團</button>
+      <button class="fchip" data-f="official" onclick="setFilter('official',this)">賽事分享</button>
+      <button class="fchip" data-f="mine" onclick="setFilter('mine',this)">我的</button>
+    </div>
+
+    <!-- LIST VIEW -->
+    <div class="view-list" id="view-list">
+      <div class="list-scroll" id="list-scroll"></div>
+    </div>
+
+    <!-- MAP VIEW -->
+    <div class="view-map hidden" id="view-map" onclick="mapBgTap(event)">
+      <svg class="map-svg" viewBox="0 0 360 560" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <rect width="360" height="560" fill="#e9eef3"/>
+        <rect x="30" y="330" width="110" height="120" rx="12" fill="#dde9dd"/>
+        <path d="M250 -20 L380 120 L380 230 L200 60 Z" fill="#d7e6f2"/>
+        <g fill="#f3f6f9">
+          <rect x="20" y="30" width="130" height="80" rx="9"/><rect x="165" y="30" width="95" height="80" rx="9"/>
+          <rect x="20" y="130" width="95" height="78" rx="9"/><rect x="130" y="130" width="130" height="78" rx="9"/>
+          <rect x="160" y="250" width="110" height="70" rx="9"/><rect x="285" y="240" width="90" height="80" rx="9"/>
+          <rect x="40" y="470" width="120" height="70" rx="9"/><rect x="250" y="440" width="110" height="100" rx="9"/>
+        </g>
+        <g stroke="#dfe6ed" stroke-width="2.5" stroke-dasharray="6 7" stroke-linecap="round">
+          <line x1="0" y1="120" x2="360" y2="120"/><line x1="0" y1="228" x2="360" y2="228"/><line x1="0" y1="420" x2="360" y2="420"/>
+          <line x1="125" y1="0" x2="125" y2="560"/><line x1="275" y1="0" x2="275" y2="560"/>
+        </g>
+      </svg>
+      <div class="you-dot" style="left:42%;top:54%;"></div>
+      <div id="map-pins"></div>
+      <div class="map-recenter" title="回到我的位置"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M9 1.5v2.5M9 14v2.5M1.5 9h2.5M14 9h2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+      <div class="map-peek" id="map-peek"></div>
+    </div>
+
+    <!-- Floating action buttons -->
+    <div class="fab-stack">
+      <button class="fab fab--locate" id="fab-locate" onclick="toggleLocate()" title="定位">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M10 1.5v3M10 15.5v3M1.5 10h3M15.5 10h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <button class="fab fab--create" onclick="openCreate()" title="開團">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 4v14M4 11h14" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+  </div>
+
+  <div class="sheet-overlay" id="detail" onclick="if(event.target===this)closeSheet('detail')">
+    <div class="sheet" id="detail-sheet"><div class="sheet-handle"></div><div id="detail-body"></div></div>
+  </div>
+
+  <!-- Create sheet -->
+  <div class="sheet-overlay" id="create" onclick="if(event.target===this)closeSheet('create')">
+    <div class="sheet" id="create-sheet">
+      <div class="sheet-handle"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <span style="font-family:var(--f-display);font-weight:900;font-size:20px;color:var(--tx);">開一團</span>
+        <button onclick="closeSheet('create')" style="background:none;border:none;font-size:20px;color:var(--tx-3);cursor:pointer;">×</button>
+      </div>
+      <div class="field"><div class="field-k">團名</div><input type="text" placeholder="例：週末信義團賽"/></div>
+      <div class="field"><div class="field-k">地點</div><input type="text" placeholder="例：WBO 信義店 3F"/></div>
+      <div class="field field-2">
+        <div><div class="field-k">開始</div><input type="text" placeholder="今日 19:00"/></div>
+        <div><div class="field-k">結束</div><input type="text" placeholder="今日 22:00"/></div>
+      </div>
+      <div class="field field-2">
+        <div><div class="field-k">人數上限</div><input type="number" placeholder="16"/></div>
+        <div><div class="field-k">獎勵</div><input type="text" placeholder="冠軍限定貼紙"/></div>
+      </div>
+      <div class="field"><div class="field-k">說明</div><textarea rows="3" placeholder="規則、報到方式、注意事項…"></textarea></div>
+      <button class="ds-cta" onclick="closeSheet('create');showToast('已開團 · 已發布到 Battle Spot')">發布揪團</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"><i></i><span id="toast-msg">已送出</span></div>
+
+  <!-- Bracket overlay -->
+  <div class="bracket-overlay" id="bracket">
+    <div class="bk-panel">
+    <div class="bk-head">
+      <div>
+        <div class="bk-head-t" id="bk-title">賽程</div>
+        <div class="bk-head-s" id="bk-sub">單敗淘汰 · 進行中</div>
+      </div>
+      <button class="bk-close" onclick="closeSheet('bracket')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="bk-scroll"><div class="bk" id="bk-tree"></div></div>
+    </div>
+  </div>
+
+  <script>
+    const SPOTS = [
+      { id:0, type:'official', status:'soon', title:'AMPHICLASH 月賽 · 台北站', host:'官方', hostAv:'A',
+        place:'WBO 信義旗艦店 3F', time:'7/1 (六) 14:00–18:00', reward:'冠軍獎盃 + 限定零件', signed:48, cap:64,
+        desc:'本月官方認證積分賽,採瑞士輪 + 單敗淘汰。前 8 名晉級總決賽。請攜帶合法改裝陀螺並提前 30 分鐘報到。', x:'56%', y:'30%',
+        signups:['T','B','S','N','V','K'],
+        comments:[{n:'官方',host:true,t:'報到開放至 13:45,逾時視同棄權。',tm:'2 天前'},{n:'Kai',t:'請問可以現場報名嗎?',tm:'1 天前'}] },
+      { id:1, type:'team', status:'open', title:'週末信義團賽 4v4', host:'Kai', hostAv:'K',
+        place:'WBO 信義店 3F', time:'今日 19:00–22:00', reward:'AA 制 · 冠軍免費', signed:9, cap:16,
+        desc:'輕鬆團賽,歡迎新手!分四隊打循環賽。現場有人帶教學。飲料 AA。', x:'24%', y:'46%',
+        signups:['K','V','N','P','C'],
+        comments:[{n:'Kai',host:true,t:'目前 9 人,還缺 7 個,揪起來!',tm:'3 小時前'},{n:'Vortex',t:'我帶兩個朋友一起 +3',tm:'2 小時前'},{n:'NovaBlade',t:'+1 第一次來請多指教',tm:'1 小時前'}] },
+      { id:2, type:'team', status:'live', title:'板橋深夜場 · 高手限定', host:'StormDragon', hostAv:'S',
+        place:'板橋 Spin Arena', time:'進行中 · 21:00 開打', reward:'積分 ×2', signed:8, cap:8,
+        desc:'PRIMUS 以上限定的高強度團賽,單敗淘汰。', x:'76%', y:'70%',
+        signups:['S','T','V','B','I','Z','N','C'],
+        comments:[{n:'StormDragon',host:true,t:'已滿團,開打!',tm:'30 分前'}],
+        sched:[{r:'R1',a:'StormDragon',b:'IronClaw',s:'4 : 2'},{r:'R1',a:'Vortex',b:'Zenith',s:'4 : 1'},{r:'R2',a:'StormDragon',b:'Vortex',s:'進行中'}],
+        bracket:[
+          { label:'八強', matches:[
+            [{n:'StormDragon',s:4,w:true},{n:'IronClaw',s:2}],
+            [{n:'Vortex',s:4,w:true},{n:'Zenith',s:1}],
+            [{n:'Tempest',s:4,w:true},{n:'Nova',s:3}],
+            [{n:'Crimson',s:4,w:true},{n:'Blaze',s:2}],
+          ]},
+          { label:'四強', matches:[
+            [{n:'StormDragon',live:true},{n:'Vortex',live:true}],
+            [{n:'Tempest',tbd:true},{n:'Crimson',tbd:true}],
+          ]},
+          { label:'決賽', matches:[
+            [{n:'勝者',tbd:true},{n:'勝者',tbd:true}],
+          ]},
+        ] },
+      { id:3, type:'team', status:'open', title:'三創新手友誼賽', host:'Phoenix', hostAv:'P',
+        place:'三創 5F 玩具樓層', time:'週六 15:00–17:00', reward:'純友誼 · 交流為主', signed:5, cap:12,
+        desc:'完全新手歡迎!不限階級,以教學和交流為主。', x:'38%', y:'82%',
+        signups:['P','K','N'],
+        comments:[{n:'Phoenix',host:true,t:'有 combo 問題都可以先在這問~',tm:'5 小時前'}] },
+      { id:4, type:'official', status:'end', title:'六月資格賽 · 已結束', host:'官方', hostAv:'A',
+        place:'西門 Beyblade Base', time:'6/15 已結束', reward:'—', signed:32, cap:32,
+        desc:'六月資格賽已圓滿結束,晉級名單已公布。', x:'62%', y:'18%',
+        signups:['T','B','S','V'], comments:[] },
+    ];
+    const TYPE = { official:{c:'sc-badge--official',t:'賽事分享',ic:'★'}, team:{c:'sc-badge--team',t:'玩家揪團',ic:'⚑'} };
+    const STAT = { open:{c:'sc-status--open',t:'報名中'}, soon:{c:'sc-status--soon',t:'即將開始'}, live:{c:'sc-status--live',t:'進行中'}, end:{c:'sc-status--end',t:'已結束'} };
+    const RVAR = { 'Kai':'var(--rk-champ)','Vortex':'var(--rk-primus)','StormDragon':'var(--rk-primus)','NovaBlade':'var(--rk-sec)','Phoenix':'var(--rk-tiro)','官方':'var(--rk-primus)' };
+    const DIST = { 0:'0.4 km', 1:'0.5 km', 2:'3.5 km', 3:'2.1 km', 4:'1.2 km' };
+    const DISTN = { 0:0.4, 1:0.5, 2:3.5, 3:2.1, 4:1.2 };
+    let curView='list', curFilter='all', curQuery='', located=false;
+    const joined = new Set([1]);
+
+    function shown(){ const q=curQuery.trim().toLowerCase(); let r=SPOTS.filter(s=>(curFilter==='all'||(curFilter==='mine'?joined.has(s.id):s.type===curFilter)) && (!q||s.title.toLowerCase().includes(q)||s.place.toLowerCase().includes(q))); if(located) r=[...r].sort((a,b)=>(DISTN[a.id]||99)-(DISTN[b.id]||99)); return r; }
+
+    function card(s){
+      const ty=TYPE[s.type], st=STAT[s.status], pct=Math.round(s.signed/s.cap*100);
+      const rew = s.reward&&s.reward!=='—' ? `<span class="sc-reward">🏅 ${s.reward}</span>` : '';
+      return `<div class="glass spot-card" onclick="openDetail(${s.id})">
+        <div class="sc-top">
+          <span class="sc-badge ${ty.c}">${ty.ic} ${ty.t}</span>
+          <span class="sc-status ${st.c}"><i></i>${st.t}</span>
+        </div>
+        <div class="sc-title">${s.title}</div>
+        <div class="sc-meta">
+          <span class="sc-mi"><svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1.5c2.4 0 4.3 1.8 4.3 4.1 0 2.8-4.3 7-4.3 7s-4.3-4.2-4.3-7C2.7 3.3 4.6 1.5 7 1.5z" stroke="currentColor" stroke-width="1.1"/><circle cx="7" cy="5.4" r="1.5" stroke="currentColor" stroke-width="1.1"/></svg>${s.place}</span>
+          ${located?`<span class="sc-dist">● ${DIST[s.id]||''}</span>`:''}
+          <span class="sc-mi"><svg width="12" height="12" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.3" stroke="currentColor" stroke-width="1.1"/><path d="M7 4v3l2 1.2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>${s.time}</span>
+        </div>
+        <div class="sc-foot">
+          <div class="sc-cap"><span class="sc-bar"><i style="width:${pct}%"></i></span><span class="sc-cap-n">${s.signed}/${s.cap}</span></div>
+          ${rew || `<div class="sc-host"><span class="sc-host-av" style="border-color:${RVAR[s.host]||'var(--tx-3)'};color:${RVAR[s.host]||'var(--tx-3)'}">${s.hostAv}</span><span class="sc-host-name">${s.host}</span></div>`}
+        </div>
+      </div>`;
+    }
+
+    function renderList(){
+      const rows=shown(); const el=document.getElementById('list-scroll');
+      el.innerHTML = rows.length ? rows.map(card).join('') : `<div class="empty-note">${curFilter==='mine'?'你還沒報名任何比賽':'找不到符合的揪團'}</div>`;
+    }
+    function renderPins(){
+      const rows=shown().filter(s=>s.status!=='end');
+      document.getElementById('map-pins').innerHTML = rows.map(s=>{
+        const cls = s.type==='official'?'map-pin--official':(s.status==='live'?'map-pin--live':'');
+        return `<div class="map-pin ${cls}" style="left:${s.x};top:${s.y};" onclick="showPeek(${s.id})"><div class="pin-head"><span>${s.signed}/${s.cap}</span></div></div>`;
+      }).join('');
+      document.getElementById('map-peek').style.display='none';
+      const fs0=document.querySelector('.fab-stack'); fs0.classList.remove('lifted'); fs0.style.transform='translateY(0)';
+    }
+    function closePeek(){ document.getElementById('map-peek').style.display='none'; const fs=document.querySelector('.fab-stack'); fs.classList.remove('lifted'); fs.style.transform='translateY(0)'; }
+    function mapBgTap(e){ if(e.target.closest('.map-pin,.map-peek,.map-recenter')) return; closePeek(); }
+    function showPeek(id){
+      const near=SPOTS.find(x=>x.id===id); const st=STAT[near.status];
+      const peek=document.getElementById('map-peek'); peek.style.display=''; peek.onclick=()=>openDetail(near.id);
+      const fs=document.querySelector('.fab-stack'); fs.classList.add('lifted'); fs.style.transform='translateY(-78px)';
+      peek.innerHTML=`<div style="font-family:var(--f-display);font-weight:900;font-size:15px;color:var(--tx);">${near.title}</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:6px;"><span class="sc-status ${st.c}" style="font-size:9px;"><i></i>${st.t}</span><span style="font-family:var(--f-mono);font-size:10px;color:var(--tx-3);">${near.place} · ${near.signed}/${near.cap}</span></div>`;
+    }
+
+    function openDetail(id){
+      const s=SPOTS.find(x=>x.id===id); const ty=TYPE[s.type], st=STAT[s.status]; const pct=Math.round(s.signed/s.cap*100);
+      const full=s.signed>=s.cap;
+      const su=s.signups.map(a=>`<span class="su-av" style="border-color:${'var(--tx-3)'};color:var(--tx-2);background:#fff;">${a}</span>`).join('');
+      const moreN=s.signed-s.signups.length;
+      const cmts=s.comments.map(c=>`<div class="cmt"><span class="cmt-av" style="border-color:${RVAR[c.n]||'var(--tx-3)'};color:${RVAR[c.n]||'var(--tx-3)'}">${c.n[0]}</span><div class="cmt-body"><span class="cmt-name ${c.host?'host':''}">${c.n}${c.host?' · 團主':''}</span><div class="cmt-text">${c.t}</div><div class="cmt-time">${c.tm}</div></div></div>`).join('') || '<div class="empty-note" style="padding:14px 0;">還沒有留言,先問一句吧</div>';
+
+      let schedHtml='';
+      if(s.status==='live' && s.sched){
+        schedHtml = `<div class="ds-sec">賽程 · 進行中</div>` + s.sched.map(m=>`<div class="sched-match"><span class="sched-r">${m.r}</span><div class="sched-vs">${m.a}<small>vs</small>${m.b}</div><span class="sched-score">${m.s}</span></div>`).join('');
+      }
+
+      let cta;
+      if(s.status==='end') cta=`<button class="ds-cta ds-cta--full">賽事已結束</button>`;
+      else if(s.type==='official') cta=`<button class="ds-cta" onclick="showToast('將前往主辦方報名頁（外部）')">賽事詳情 · 前往報名</button>`;
+      else if(joined.has(s.id)) cta=`<button class="ds-cta ds-cta--joined">已報名</button>`;
+      else if(s.status==='live') cta=`<button class="ds-cta" onclick="openBracket(${s.id})">查看即時賽程</button>`;
+      else if(full) cta=`<button class="ds-cta ds-cta--full">已額滿 ${s.signed}/${s.cap}</button>`;
+      else cta=`<button class="ds-cta" id="join-cta" onclick="joinSpot(${s.id})">報名參加 · ${s.signed}/${s.cap}</button>`;
+
+      document.getElementById('detail-body').innerHTML = `
+        <span class="sc-badge ${ty.c}">${ty.ic} ${ty.t}</span>
+        <div class="ds-title" style="margin-top:10px;">${s.title}</div>
+        <div class="ds-host"><span class="sc-host-av" style="border-color:${RVAR[s.host]||'var(--tx-3)'};color:${RVAR[s.host]||'var(--tx-3)'}">${s.hostAv}</span><span class="ds-host-name">${s.type==='official'?'官方主辦':'團主 '+s.host}</span></div>
+        <div class="ds-grid">
+          <div class="ds-cell"><div class="ds-k">時間</div><div class="ds-v">${s.time}</div></div>
+          <div class="ds-cell"><div class="ds-k">地點</div><div class="ds-v">${s.place}</div></div>
+          <div class="ds-cell"><div class="ds-k">人數</div><div class="ds-v">${s.signed} / ${s.cap}</div></div>
+          <div class="ds-cell"><div class="ds-k">獎勵</div><div class="ds-v">${s.reward}</div></div>
+        </div>
+        <div class="ds-desc">${s.desc}</div>
+        ${schedHtml}
+        <div class="ds-sec">已報名 <span style="color:var(--tx-2);">${s.signed} 人</span></div>
+        <div class="signup-row">${su}${moreN>0?`<span class="su-more">+${moreN}</span>`:''}</div>
+        <div class="ds-sec">留言 / 詢問 <span style="color:var(--tx-2);">${s.comments.length}</span></div>
+        <div id="cmt-list">${cmts}</div>
+        <div class="cmt-input-row"><input class="cmt-input" id="cmt-input" placeholder="留言或提問…"/><button class="cmt-send" onclick="sendCmt(${s.id})">送出</button></div>
+        ${cta}`;
+      openSheet('detail');
+    }
+
+    function joinSpot(id){ const s=SPOTS.find(x=>x.id===id); if(s.signed<s.cap){ s.signed++; s.signups.push('你'); joined.add(id); } closeSheet('detail'); renderList(); renderPins(); showToast('已報名 · '+s.title); }
+    function sendCmt(id){ const inp=document.getElementById('cmt-input'); const v=inp.value.trim(); if(!v) return; const s=SPOTS.find(x=>x.id===id); s.comments.push({n:'你',t:v,tm:'剛剛'}); openDetail(id); setTimeout(()=>{const l=document.getElementById('cmt-list'); if(l) l.scrollIntoView&&0;},0); }
+
+    function openSheet(id){ document.getElementById(id).classList.add('show'); }
+    function openBracket(id){
+      const s=SPOTS.find(x=>x.id===id); if(!s.bracket) return;
+      document.getElementById('bk-title').textContent = s.title;
+      document.getElementById('bk-sub').textContent = (s.desc.includes('單敗')?'單敗淘汰':'淘汰賽') + ' · ' + s.signed + ' 人';
+      const rounds = s.bracket;
+      let labels = rounds.map(r=>`<div>${r.label}</div>`).join('') + '<div>冠軍</div>';
+      let cols = '';
+      rounds.forEach((rd, ri)=>{
+        const hasNext = true;
+        // group matches into pairs of 2 (final round may have 1)
+        let pairsHtml = '';
+        for(let i=0;i<rd.matches.length;i+=2){
+          const grp = rd.matches.slice(i,i+2);
+          pairsHtml += `<div class="bk-pair">` + grp.map(m=>matchHtml(m)).join('') + `</div>`;
+        }
+        cols += `<div class="bk-col bk-col--has">${pairsHtml}</div>`;
+      });
+      // champion column
+      cols += `<div class="bk-col bk-col--champ"><div class="bk-champ">
+        <div class="bk-champ-cup"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M7 4h10v3a5 5 0 0 1-10 0V4z" stroke="currentColor" stroke-width="1.5"/><path d="M7 5H4.5v1.5A3 3 0 0 0 7 9M17 5h2.5v1.5A3 3 0 0 1 17 9M9.5 15h5M10 15v3h4v-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="bk-champ-l">CHAMPION</div><div class="bk-champ-n">— 待定 —</div>
+      </div></div>`;
+      document.getElementById('bk-tree').innerHTML = `<div class="bk-labels">${labels}</div><div class="bk-body">${cols}</div>`;
+      openSheet('bracket');
+    }
+    function matchHtml(m){
+      return `<div class="bk-match">` + m.map(p=>{
+        const cls = p.w ? 'win' : (p.tbd ? 'tbd' : (p.live ? 'live' : ''));
+        const name = p.tbd ? '勝者' : p.n;
+        const sc = p.live ? '<span class="bk-live-tag">LIVE</span>' : `<span class="bk-sc">${p.tbd?'':(p.s!=null?p.s:'')}</span>`;
+        return `<div class="bk-slot ${cls}"><span class="bk-pn">${name}</span>${sc}</div>`;
+      }).join('') + `</div>`;
+    }
+    function closeSheet(id){ document.getElementById(id).classList.remove('show'); }
+    function openCreate(){ openSheet('create'); }
+
+    function setView(v){ curView=v; document.getElementById('view-list').classList.toggle('hidden',v!=='list'); document.getElementById('view-map').classList.toggle('hidden',v!=='map'); document.getElementById('vt-list').classList.toggle('active',v==='list'); document.getElementById('vt-map').classList.toggle('active',v==='map'); if(v==='map') renderPins(); }
+    function setFilter(f,btn){ curFilter=f; document.querySelectorAll('.fchip').forEach(c=>c.classList.remove('active')); btn.classList.add('active'); renderList(); renderPins(); }
+    function onSearch(q){ curQuery=q; renderList(); renderPins(); }
+    function toggleLocate(){
+      located=!located;
+      document.getElementById('fab-locate').classList.toggle('active',located);
+      const vm=document.getElementById('view-map'); vm.classList.toggle('located',located);
+      let dots=document.getElementById('player-dots');
+      if(!dots){ dots=document.createElement('div'); dots.id='player-dots'; vm.insertBefore(dots, document.getElementById('map-pins')); }
+      dots.innerHTML = located ? [['38%','50%'],['46%','60%'],['33%','44%'],['50%','52%'],['40%','66%'],['44%','40%'],['29%','56%'],['52%','62%']].map(p=>`<span class="player-dot" style="left:${p[0]};top:${p[1]};"></span>`).join('') : '';
+      renderList(); renderPins();
+      showToast(located?'定位已開·依距離排序':'已關閉定位');
+    }
+
+    let _toastT=null;
+    function showToast(m){ const t=document.getElementById('toast'); document.getElementById('toast-msg').textContent=m; t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)'; clearTimeout(_toastT); _toastT=setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(-50%) translateY(12px)';},2200); }
+
+    renderList(); renderPins(); setView('map');
+  </script>
+</body>
+</html>
